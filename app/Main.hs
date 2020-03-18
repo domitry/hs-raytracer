@@ -1,19 +1,64 @@
 import Control.Monad
 import Data.Char
 import Data.Function
-import Linear
+import Linear.Vector
+import Linear.V3
+import Linear.Metric
 
-type Color = (Float, Float, Float)g
-data Image = Image Int Int [Color]
-    deriving Show
+type Color = (Float, Float, Float)
+type Vf = V3 Float
+data Image = Image Int Int [Color] deriving Show
+data Ray = Ray Vf Vf deriving Show -- orig, dir
+data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
+data Sphere = Sphere Vf Float deriving Show -- cent, rad
 
-genDammyImage::Int->Int->Image
-genDammyImage nx ny = Image nx ny [(x/(w-1), 1-y/(h-1), 0.2) | y<-ys, x<-xs]
+extend::Float->Ray->Vf
+extend t (Ray orig dir) = orig + t*^dir
+
+hitSphere::Ray->Sphere->Maybe Vf
+hitSphere ray sphere 
+    | t < 0 = Nothing
+    | otherwise = Just $ extend ((-b-sqrt(t))/2.0/a) ray -- select a point which is the nearest to the origin of the ray
     where
-        w = fromIntegral nx
-        h = fromIntegral ny
-        xs = map fromIntegral [0..(nx-1)]
-        ys = map fromIntegral [0..(ny-1)]
+        Ray va vb = ray
+        Sphere vc r = sphere
+        a = dot vb vb
+        b = 2*dot vb (va-vc)
+        c = dot (va-vc) (va-vc) -r*r
+        t = b*b-4*a*c
+
+ray::Float->Float->Camera->Ray
+ray u v cam = Ray orig dir
+    where
+        Camera orig llcorner hor vert = cam 
+        dist = llcorner + (u *^ hor) + (v *^ vert)
+        dir = dist - orig
+
+background::Ray->Color
+background ray = (r, g, b)
+    where
+        Ray orig (V3 x y z) = ray
+        t = 0.5*(y+1.0) -- bound to [0,1]
+        vec = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
+        V3 r g b = vec
+
+normal::Sphere->Vf->Vf
+normal (Sphere center _) p = (p-center)
+
+color::Ray->Color
+color ray = case hitted of
+    Just p -> let V3 x y z = normalize $ normal sphere p in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
+    Nothing -> background ray
+    where
+        sphere = Sphere (V3 0.0 0.0 (-1.0)) 0.5
+        hitted = hitSphere ray sphere
+
+render::Int->Int->Camera->Image
+render nx ny cam = Image nx ny cols
+    where
+        xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
+        uvs = [(x/(fromIntegral nx),1.0-y/(fromIntegral ny)) | (x, y) <- xys]
+        cols = map (\(u,v)->color $ ray u v cam) uvs
 
 toPPM::Image->String
 toPPM im = unlines(header ++ body)
@@ -23,4 +68,5 @@ toPPM im = unlines(header ++ body)
         body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (r,g,b) <- cols]
 
 main = do
-    putStr $ toPPM $ genDammyImage 200 100
+    let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)     
+    putStr $ toPPM $ render 200 100 cam
