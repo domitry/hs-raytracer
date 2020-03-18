@@ -11,21 +11,31 @@ data Image = Image Int Int [Color] deriving Show
 data Ray = Ray Vf Vf deriving Show -- orig, dir
 data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
 data Sphere = Sphere Vf Float deriving Show -- cent, rad
+data HitEvent = HitEvent Vf Vf deriving Show -- point, normal
 
-extend::Float->Ray->Vf
-extend t (Ray orig dir) = orig + t*^dir
+extend::Ray->Float->Vf
+extend (Ray orig dir) t = orig + t*^dir
 
-hitSphere::Ray->Sphere->Maybe Vf
-hitSphere ray sphere 
+hitSphereParam::Ray->Sphere->Maybe Float
+hitSphereParam ray sphere 
     | t < 0 = Nothing
-    | otherwise = Just $ extend ((-b-sqrt(t))/2.0/a) ray -- select a point which is the nearest to the origin of the ray
+    | otherwise = Just ((-b-sqrt(t))/2.0/a) -- select a point which is the nearest to the origin of the ray
     where
         Ray va vb = ray
         Sphere vc r = sphere
         a = dot vb vb
         b = 2*dot vb (va-vc)
-        c = dot (va-vc) (va-vc) -r*r
+        c = dot (va-vc) (va-vc) - r*r
         t = b*b-4*a*c
+
+hitSphere::Ray->Sphere->Maybe HitEvent
+hitSphere ray sphere = case (hitSphereParam ray sphere) of
+    Nothing -> Nothing
+    Just param -> Just $ HitEvent point normal
+        where
+            Sphere center _ = sphere
+            point = extend ray param
+            normal = point - center
 
 ray::Float->Float->Camera->Ray
 ray u v cam = Ray orig dir
@@ -42,13 +52,10 @@ background ray = (r, g, b)
         vec = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         V3 r g b = vec
 
-normal::Sphere->Vf->Vf
-normal (Sphere center _) p = (p-center)
-
 color::Ray->Color
 color ray = case hitted of
-    Just p -> let V3 x y z = normalize $ normal sphere p in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
     Nothing -> background ray
+    Just (HitEvent _ normal) -> let V3 x y z = normalize normal in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
     where
         sphere = Sphere (V3 0.0 0.0 (-1.0)) 0.5
         hitted = hitSphere ray sphere
@@ -69,4 +76,4 @@ toPPM im = unlines(header ++ body)
 
 main = do
     let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)     
-    putStr $ toPPM $ render 200 100 cam
+    putStr $ toPPM $ render 400 200 cam
