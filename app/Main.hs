@@ -1,6 +1,9 @@
 import Control.Monad
 import Data.Char
 import Data.Function
+import Data.Maybe
+import Data.List
+import Data.Ord
 import Linear.Vector
 import Linear.V3
 import Linear.Metric
@@ -10,32 +13,43 @@ type Vf = V3 Float
 data Image = Image Int Int [Color] deriving Show
 data Ray = Ray Vf Vf deriving Show -- orig, dir
 data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
-data Sphere = Sphere Vf Float deriving Show -- cent, rad
-data HitEvent = HitEvent Vf Vf deriving Show -- point, normal
+data HitEvent = HitEvent Float Vf Vf deriving Show -- param, point, normal
 
-extend::Ray->Float->Vf
-extend (Ray orig dir) t = orig + t*^dir
+-- solution from https://stackoverflow.com/questions/7787317/list-of-different-types
+data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
+data World = World [Hittable]
 
-hitSphereParam::Ray->Sphere->Maybe Float
-hitSphereParam ray sphere 
+hitSphere::Ray->Vf->Float->Maybe Float
+hitSphere ray vc r
     | t < 0 = Nothing
+    | (-b-sqrt(t))/2.0/a < 0 = Nothing -- a hitted point is back to origin 
     | otherwise = Just ((-b-sqrt(t))/2.0/a) -- select a point which is the nearest to the origin of the ray
     where
         Ray va vb = ray
-        Sphere vc r = sphere
         a = dot vb vb
         b = 2*dot vb (va-vc)
         c = dot (va-vc) (va-vc) - r*r
         t = b*b-4*a*c
 
-hitSphere::Ray->Sphere->Maybe HitEvent
-hitSphere ray sphere = case (hitSphereParam ray sphere) of
-    Nothing -> Nothing
-    Just param -> Just $ HitEvent point normal
-        where
-            Sphere center _ = sphere
-            point = extend ray param
-            normal = point - center
+sphere::Vf->Float->Hittable
+sphere center rad = Hittable { hit = hit_}
+    where
+        hit_ ray = case (hitSphere ray center rad) of
+            Nothing -> Nothing
+            Just param -> Just $ HitEvent param point normal
+                where
+                    point = extend ray param
+                    normal = point - center
+
+hitWorld::Ray->World->Maybe HitEvent
+hitWorld ray (World hittables) = case (events) of
+    [] -> Nothing
+    _ -> Just $ minimumBy (comparing (\(HitEvent param _ _)->param)) events
+    where
+        events = catMaybes [hit_(ray) | (Hittable hit_) <- hittables]
+
+extend::Ray->Float->Vf
+extend (Ray orig dir) t = orig + t*^dir
 
 ray::Float->Float->Camera->Ray
 ray u v cam = Ray orig dir
@@ -52,20 +66,17 @@ background ray = (r, g, b)
         vec = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         V3 r g b = vec
 
-color::Ray->Color
-color ray = case hitted of
+color::Ray->World->Color
+color ray world = case (hitWorld ray world) of
     Nothing -> background ray
-    Just (HitEvent _ normal) -> let V3 x y z = normalize normal in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
-    where
-        sphere = Sphere (V3 0.0 0.0 (-1.0)) 0.5
-        hitted = hitSphere ray sphere
+    Just (HitEvent _ _ normal) -> let V3 x y z = normalize normal in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
 
-render::Int->Int->Camera->Image
-render nx ny cam = Image nx ny cols
+render::Int->Int->Camera->World->Image
+render nx ny cam world = Image nx ny cols
     where
         xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
         uvs = [(x/(fromIntegral nx),1.0-y/(fromIntegral ny)) | (x, y) <- xys]
-        cols = map (\(u,v)->color $ ray u v cam) uvs
+        cols = map (\(u,v)->color (ray u v cam) world) uvs
 
 toPPM::Image->String
 toPPM im = unlines(header ++ body)
@@ -75,5 +86,8 @@ toPPM im = unlines(header ++ body)
         body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (r,g,b) <- cols]
 
 main = do
-    let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)     
-    putStr $ toPPM $ render 400 200 cam
+    let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)
+    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5
+    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0
+    let world = World [big, small] 
+    putStr $ toPPM $ render 400 200 cam world
