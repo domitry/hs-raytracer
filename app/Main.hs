@@ -1,3 +1,4 @@
+import System.Random
 import Control.Monad
 import Data.Char
 import Data.Function
@@ -14,6 +15,7 @@ data Image = Image Int Int [Color] deriving Show
 data Ray = Ray Vf Vf deriving Show -- orig, dir
 data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
 data HitEvent = HitEvent Float Vf Vf deriving Show -- param, point, normal
+data Pixel = Pixel Float Float Float Float
 
 -- solution from https://stackoverflow.com/questions/7787317/list-of-different-types
 data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
@@ -71,12 +73,30 @@ color ray world = case (hitWorld ray world) of
     Nothing -> background ray
     Just (HitEvent _ _ normal) -> let V3 x y z = normalize normal in (0.5*(x+1.0), 0.5*(y+1.0), 0.5*(z+1.0))
 
+mixColors::[Color]->Color
+mixColors cols = (rt/nf, gt/nf, bt/nf)
+    where
+        total = foldl (\(r1,g1,b1,cnt)->
+            (\(r2,g2,b2)->(r1+r2,g1+g2,b1+b2,cnt+1))) (0.0,0.0,0.0,0) cols
+        (rt,gt,bt,n) = total
+        nf = fromIntegral n
+
+colorPixel::Pixel->Int->Camera->World->Color
+colorPixel (Pixel u v uw uh) ns cam world = mixColors cols
+    where
+        rs = take (2*ns) $ randomRs (0.0,1.0) (mkStdGen 300)
+        us = [u + r*uw | r <- take ns rs]
+        vs = [v + r*uh | r <- drop ns rs]
+        cols = map (\(u,v)->color (ray u v cam) world) $ zip us vs
+
 render::Int->Int->Camera->World->Image
 render nx ny cam world = Image nx ny cols
     where
         xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
-        uvs = [(x/(fromIntegral nx),1.0-y/(fromIntegral ny)) | (x, y) <- xys]
-        cols = map (\(u,v)->color (ray u v cam) world) uvs
+        uw = 1.0/(fromIntegral nx)
+        uh = 1.0/(fromIntegral ny)
+        uvs = [(x*uw,1.0-y*uh) | (x, y) <- xys]
+        cols = [colorPixel (Pixel u v uw uh) 100 cam world | (u, v) <- uvs]
 
 toPPM::Image->String
 toPPM im = unlines(header ++ body)
@@ -90,4 +110,4 @@ main = do
     let small = sphere (V3 0.0 0.0 (-1.0)) 0.5
     let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0
     let world = World [big, small] 
-    putStr $ toPPM $ render 400 200 cam world
+    putStr $ toPPM $ render 800 400 cam world

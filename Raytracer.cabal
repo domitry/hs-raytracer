@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1482bae99f5e8f6d5307a21270c65ab68d00260471719248f06c6615eff24eef
+-- hash: 91d0a3a08b97544f8955098be6a054747dc1d12d350ca24941fe17922ffb64c1
 
 name:           Raytracer
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
   build-depends:
       base >=4.7 && <5
     , linear
+    , random
   default-language: Haskell2010
 
 executable Raytracer-exe
@@ -48,6 +49,7 @@ executable Raytracer-exe
       Raytracer
     , base >=4.7 && <5
     , linear
+    , random
   default-language: Haskell2010
 
 test-suite Raytracer-test
@@ -62,4 +64,5 @@ test-suite Raytracer-test
       Raytracer
     , base >=4.7 && <5
     , linear
+    , random
   default-language: Haskell2010
