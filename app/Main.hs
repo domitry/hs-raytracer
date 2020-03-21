@@ -93,7 +93,7 @@ reflect::HitEvent->StdGen->(Ray, StdGen)
 reflect (HitEvent _ point normal) gen0 = (Ray point dir, gen1)
     where
         (v, gen1) = randomPointInUnitSphere gen0
-        dir = (normalize normal) -- + v
+        dir = (normalize normal)  + v
 
 color::Ray->World->StdGen->Color
 color ray world gen0 = case (hitWorld ray world) of
@@ -119,7 +119,7 @@ render nx ny cam world = Image nx ny cols
                 dys = take ns $ randomRs (0.0, 1.0) gen1
         xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
         gens = mkGens $ mkStdGen 100
-        cols = map (\(xy, gen) -> average $ map (genColor gen) (sample gen xy)) (zip xys gens)
+        cols = map (\(xy, gen) -> average $ map (\(xy, g) -> genColor g xy) (zip (sample gen xy) (mkGens gen))) (zip xys gens)
         
 toPPM::Image->String
 toPPM im = unlines(header ++ body)
