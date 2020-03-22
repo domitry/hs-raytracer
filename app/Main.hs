@@ -11,26 +11,8 @@ import Linear.V3
 import Linear.Metric
 import Types
 import Utils
-
--- a hitted point is back to origin
--- select a point which is the nearest to the origin of the ray
-sphere::Vf->Float->Hittable
-sphere vc r = Hittable { hit = hit_ }
-    where
-        hitParam (Ray va vb)
-            | d < 0 = Nothing
-            | otherwise = bound (1e-3,1e5) ((-b-sqrt(d))/2.0/a)
-            where
-                a = dot vb vb
-                b = 2*dot vb (va-vc)
-                c = dot (va-vc) (va-vc) - r*r
-                d = b*b-4*a*c
-        
-        hit_ ray = do
-            param <- hitParam ray
-            let point = extend ray param
-            let normal = (point - vc)^/r
-            return $ HitEvent param point normal
+import Hittables (sphere)
+import Materials 
 
 hitWorld::World->Ray->Maybe HitEvent
 hitWorld (World hitables) ray = minimumByMaybe (comparing getParam) events
@@ -57,6 +39,7 @@ color world ray = case (hitWorld world ray) of
         col <- color world reflected
         return $ 0.5 *^ col
 
+-- for anti-aliacing, sample ns points around the center of a pixel
 sampleXYs::Int->(Float, Float)->State StdGen [(Float, Float)]
 sampleXYs ns (cx, cy) = forM [1..ns] $ \_ -> do
     dx <- randomRng (0, 1)
@@ -83,13 +66,6 @@ render size cam world = do
         return $ average sampledCols
     
     return $ Image size cols
-
-toPPM::Image->String
-toPPM im = unlines(header ++ body)
-    where
-        Image (nx, ny) cols = im
-        header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
-        body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (V3 r g b) <- cols]
 
 main = do
     let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)

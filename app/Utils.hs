@@ -31,3 +31,10 @@ module Utils where
         z <- randomRng (0, 1)
         let vec = V3 x y z
         if norm vec <= 1 then return vec else randomPointInUnitSphere
+
+    toPPM::Image->String
+    toPPM im = unlines(header ++ body)
+        where
+            Image (nx, ny) cols = im
+            header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
+            body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (V3 r g b) <- cols]
