@@ -1,5 +1,6 @@
-import System.Random
 import Control.Monad
+import Control.Monad.State
+import System.Random
 import Data.Char
 import Data.Function
 import Data.Maybe
@@ -8,39 +9,8 @@ import Data.Ord
 import Linear.Vector
 import Linear.V3
 import Linear.Metric
-import Control.Monad.State
-
-type Color = V3 Float
-type Vf = V3 Float
-data Image = Image (Int, Int) [Color] deriving Show
-data Ray = Ray Vf Vf deriving Show -- orig, dir
-data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
-data HitEvent = HitEvent Float Vf Vf deriving Show -- param, point, normal
-data Pixel = Pixel Float Float Float Float
-data Hittable = Hittable{ hit::Ray->Maybe HitEvent } --, event::Maybe Float->Maybe HitEvent }
-data World = World [Hittable]
-
-getParam::HitEvent->Float
-getParam (HitEvent param _ _) = param
-
-extend::Ray->Float->Vf
-extend (Ray orig dir) t = orig + t*^dir
-
-bound::(Float, Float)->Float->Maybe Float
-bound (tmin, tmax) t = if (t > tmin) && (t < tmax) then Just t else Nothing
-
-minimumByMaybe::(a -> a -> Ordering) -> [a] -> Maybe a
-minimumByMaybe lmd lst = if null lst then Nothing else Just $ minimumBy lmd lst
-
-average::[Vf] -> Vf
-average vecs = V3 (rt/nf) (gt/nf) (bt/nf)
-    where
-        (rt,gt,bt,n) = foldl (\(r1,g1,b1,cnt)->
-            (\(V3 r2 g2 b2)->(r1+r2,g1+g2,b1+b2,cnt+1))) (0.0,0.0,0.0,0) vecs
-        nf = fromIntegral n
-
-randomRng::(Random a)=>(a, a)->State StdGen a
-randomRng rng = state (\gen0 -> randomR rng gen0)
+import Types
+import Utils
 
 -- a hitted point is back to origin
 -- select a point which is the nearest to the origin of the ray
@@ -72,14 +42,6 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
     where
         V3 x y z = normalize dir
         t = 0.5*(y+1.0)
-
-randomPointInUnitSphere::State StdGen Vf
-randomPointInUnitSphere = do
-    x <- randomRng (0, 1)
-    y <- randomRng (0, 1)
-    z <- randomRng (0, 1)
-    let vec = V3 x y z
-    if norm vec <= 1 then return vec else randomPointInUnitSphere
 
 reflect::HitEvent->State StdGen Ray
 reflect (HitEvent _ point normal) = do    

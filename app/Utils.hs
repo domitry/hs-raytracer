@@ -1,0 +1,33 @@
+module Utils where
+    import Control.Monad.State
+    import Linear.Vector
+    import Linear.V3
+    import Linear.Metric
+    import Data.Function
+    import Data.List
+    import System.Random
+    import Types
+
+    bound::(Float, Float)->Float->Maybe Float
+    bound (tmin, tmax) t = if (t > tmin) && (t < tmax) then Just t else Nothing
+
+    minimumByMaybe::(a -> a -> Ordering) -> [a] -> Maybe a
+    minimumByMaybe lmd lst = if null lst then Nothing else Just $ minimumBy lmd lst
+
+    average::[Vf] -> Vf
+    average vecs = V3 (rt/nf) (gt/nf) (bt/nf)
+        where
+            (rt,gt,bt,n) = foldl (\(r1,g1,b1,cnt)->
+                (\(V3 r2 g2 b2)->(r1+r2,g1+g2,b1+b2,cnt+1))) (0.0,0.0,0.0,0) vecs
+            nf = fromIntegral n
+
+    randomRng::(Random a)=>(a, a)->State StdGen a
+    randomRng rng = state (\gen0 -> randomR rng gen0)
+
+    randomPointInUnitSphere::State StdGen Vf
+    randomPointInUnitSphere = do
+        x <- randomRng (0, 1)
+        y <- randomRng (0, 1)
+        z <- randomRng (0, 1)
+        let vec = V3 x y z
+        if norm vec <= 1 then return vec else randomPointInUnitSphere
