@@ -64,10 +64,11 @@ render size cam world = do
 
 main = do
     let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)
-    let gray = lambertian $ V3 0.5 0.5 0.5
-    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 gray
-    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 gray
+    let pink = lambertian $ V3 0.8 0.3 0.3
+    let green  = lambertian $ V3 0.8 0.8 0.0
+    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
+    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
     let world = World [small, big] 
     let size = (200, 100)
     stdgen <- getStdGen
-    putStr $ toPPM $ evalState (render size cam world) stdgen
+    putStr $ toPPM $ gammaCorrection $ evalState (render size cam world) stdgen

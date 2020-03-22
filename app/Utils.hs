@@ -38,3 +38,6 @@ module Utils where
             Image (nx, ny) cols = im
             header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
             body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (V3 r g b) <- cols]
+
+    gammaCorrection::Image->Image
+    gammaCorrection (Image size cols) = Image size $ map (\(V3 r g b)->V3 (r**0.5) (g**0.5) (b**0.5)) cols
