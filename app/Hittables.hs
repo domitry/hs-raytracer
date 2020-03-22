@@ -7,8 +7,8 @@ module Hittables where
 
     -- a hitted point is back to origin
     -- select a point which is the nearest to the origin of the ray
-    sphere::Vf->Float->Hittable
-    sphere vc r = Hittable { hit = hit_ }
+    sphere::Vf->Float->Material->Hittable
+    sphere vc r mat = Hittable { hit = hit_ }
         where
             hitParam (Ray va vb)
                 | d < 0 = Nothing
@@ -23,4 +23,4 @@ module Hittables where
                 param <- hitParam ray
                 let point = extend ray param
                 let normal = (point - vc)^/r
-                return $ HitEvent param point normal
+                return $ HitEvent param point normal mat

@@ -25,19 +25,14 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         V3 x y z = normalize dir
         t = 0.5*(y+1.0)
 
-reflect::HitEvent->State StdGen Ray
-reflect (HitEvent _ point normal) = do    
-    v <- randomPointInUnitSphere
-    let dir = (normalize normal)  + v
-    return $ Ray point dir
-
 color::World->Ray->State StdGen Color
 color world ray = case (hitWorld world ray) of
     Nothing -> return $ background ray
     Just event -> do
-        reflected <- reflect event
+        let (Material scatter_) = getMaterial event
+        (reflected, attenuation) <- scatter_ event
         col <- color world reflected
-        return $ 0.5 *^ col
+        return $ attenuation * col
 
 -- for anti-aliacing, sample ns points around the center of a pixel
 sampleXYs::Int->(Float, Float)->State StdGen [(Float, Float)]
@@ -69,8 +64,9 @@ render size cam world = do
 
 main = do
     let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)
-    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5
-    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0
+    let gray = lambertian $ V3 0.5 0.5 0.5
+    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 gray
+    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 gray
     let world = World [small, big] 
     let size = (200, 100)
     stdgen <- getStdGen
