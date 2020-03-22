@@ -12,7 +12,7 @@ import Linear.Metric
 import Types
 import Utils
 import Hittables (sphere)
-import Materials 
+import Materials (lambertian, metal)
 
 hitWorld::World->Ray->Maybe HitEvent
 hitWorld (World hitables) ray = minimumByMaybe (comparing getParam) events
@@ -27,13 +27,14 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
 
 color::World->Ray->Int->State StdGen Color
 color world ray depth
-    | depth >= 50 = return $ V3 0 0 0
+    | depth >= 50 = return black
     | otherwise = case (hitWorld world ray) of
         Nothing -> return $ background ray
         Just event -> do
+            let genReflectedColor = \reflected->(color world reflected (depth+1))
             let (Material scatter_) = getMaterial event
-            (reflected, attenuation) <- scatter_ ray event
-            col <- color world reflected (depth+1)
+            (maybeReflected, attenuation) <- scatter_ ray event
+            col <- maybe (return black) genReflectedColor maybeReflected
             return $ attenuation * col
 
 -- for anti-aliacing, sample ns points around the center of a pixel
@@ -71,9 +72,9 @@ main = do
     let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
     let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
     
-    let mt1 = metal $ V3 0.8 0.6 0.2
+    let mt1 = metal (V3 0.8 0.6 0.2) 0.0 -- super fuzzy
+    let mt2 = metal (V3 0.8 0.8 0.8) 0.0 -- gray & a bit fuzzy
     let left = sphere (V3 1 0 (-1)) 0.5 mt1
-    let mt2 = metal $ V3 0.8 0.8 0.8
     let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
 
     let world = World [small, big, left, right] 

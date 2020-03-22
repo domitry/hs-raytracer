@@ -11,9 +11,8 @@ module Types where
     data Ray = Ray !Vf !Vf deriving Show -- orig, dir
     data Camera = Camera Vf Vf Vf Vf deriving Show -- orig, lower left corner, hor, vert
     data HitEvent = HitEvent Float Vf Vf Material -- param, point, normal
-    data Pixel = Pixel Float Float Float Float
     data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
-    data Material = Material{ scatter::Ray->HitEvent->State StdGen (Ray, Color) } -- ray_in, event -> (reflected, attenuation)
+    data Material = Material{ scatter::Ray->HitEvent->State StdGen (Maybe Ray, Color) } -- ray_in, event -> (reflected, attenuation)
     data World = World [Hittable]
 
     getParam::HitEvent->Float

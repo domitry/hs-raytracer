@@ -12,7 +12,7 @@ module Hittables where
         where
             hitParam (Ray va vb)
                 | d < 0 = Nothing
-                | otherwise = bound (1e-3,1e5) ((-b-sqrt(d))/2.0/a)
+                | otherwise = boundMaybe (1e-3,1e5) ((-b-sqrt(d))/2.0/a)
                 where
                     a = dot vb vb
                     b = 2*dot vb (va-vc)

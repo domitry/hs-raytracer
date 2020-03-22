@@ -5,6 +5,7 @@ module Materials
         import Linear.V3
         import Linear.Vector
         import Linear.Metric
+        import Data.Maybe
 
         -- lambertian
         lambertian::Color->Material
@@ -12,16 +13,20 @@ module Materials
             where
                 imp_scatter _ (HitEvent _ point n _) = do    
                     v <- randomPointInUnitSphere
-                    let dir = n + v
-                    return $ (Ray point dir, albedo)
+                    let v' = n + v
+                    return $ (Just $ Ray point v', albedo)
 
         -- metal
-        metal::Color->Material
-        metal albedo = Material { scatter=imp_scatter }
+        metal::Color->Float->Material
+        metal albedo fuzziness = Material { scatter=imp_scatter }
             where
-                imp_scatter (Ray _ v) (HitEvent _ point n _) = do    
-                    let vn = abs $ dot v n
-                    let dir = v + (2*vn)*^n
-                    return $ (Ray point dir, albedo)
+                imp_scatter (Ray _ vin) (HitEvent _ point n _) = do
+                    let f = bound (0, 1) fuzziness
+                    s <- randomPointInUnitSphere
+                    let vn = abs $ dot vin n
+                    let vout = vin + (2*vn)*^n + f*^s
+                    return $ if (dot vout n) >= 0
+                        then (Just $ Ray point vout, albedo)
+                        else (Nothing, albedo)
         
         -- glass
