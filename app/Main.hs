@@ -72,8 +72,8 @@ main = do
     let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
     let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
     
-    let mt1 = metal (V3 0.8 0.6 0.2) 0.0 -- super fuzzy
-    let mt2 = metal (V3 0.8 0.8 0.8) 0.0 -- gray & a bit fuzzy
+    let mt1 = metal (V3 0.8 0.6 0.2) 1.0 -- super fuzzy
+    let mt2 = metal (V3 0.8 0.8 0.8) 0.3 -- gray & a bit fuzzy
     let left = sphere (V3 1 0 (-1)) 0.5 mt1
     let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
 
