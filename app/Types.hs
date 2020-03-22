@@ -13,7 +13,7 @@ module Types where
     data HitEvent = HitEvent Float Vf Vf Material -- param, point, normal
     data Pixel = Pixel Float Float Float Float
     data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
-    data Material = Material{ scatter::HitEvent->State StdGen (Ray, Color) } -- point, normal -> (reflected, attenuation)
+    data Material = Material{ scatter::Ray->HitEvent->State StdGen (Ray, Color) } -- ray_in, event -> (reflected, attenuation)
     data World = World [Hittable]
 
     getParam::HitEvent->Float

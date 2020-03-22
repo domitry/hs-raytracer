@@ -25,14 +25,16 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         V3 x y z = normalize dir
         t = 0.5*(y+1.0)
 
-color::World->Ray->State StdGen Color
-color world ray = case (hitWorld world ray) of
-    Nothing -> return $ background ray
-    Just event -> do
-        let (Material scatter_) = getMaterial event
-        (reflected, attenuation) <- scatter_ event
-        col <- color world reflected
-        return $ attenuation * col
+color::World->Ray->Int->State StdGen Color
+color world ray depth
+    | depth >= 50 = return $ V3 0 0 0
+    | otherwise = case (hitWorld world ray) of
+        Nothing -> return $ background ray
+        Just event -> do
+            let (Material scatter_) = getMaterial event
+            (reflected, attenuation) <- scatter_ ray event
+            col <- color world reflected (depth+1)
+            return $ attenuation * col
 
 -- for anti-aliacing, sample ns points around the center of a pixel
 sampleXYs::Int->(Float, Float)->State StdGen [(Float, Float)]
@@ -57,7 +59,7 @@ render size cam world = do
         xys <- sampleXYs 100 cxy
         let toUV = \(x, y)->(x/(fromIntegral nx),  1.0 - y/(fromIntegral ny))
         let rays = map ((toRay cam).toUV) xys
-        sampledCols <- forM rays (color world)
+        sampledCols <- forM rays (\r->color world r 0) -- TODO: if a wrapper function is added: forM rays (color world)
         return $ average sampledCols
     
     return $ Image size cols
@@ -68,7 +70,13 @@ main = do
     let green  = lambertian $ V3 0.8 0.8 0.0
     let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
     let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
-    let world = World [small, big] 
+    
+    let mt1 = metal $ V3 0.8 0.6 0.2
+    let left = sphere (V3 1 0 (-1)) 0.5 mt1
+    let mt2 = metal $ V3 0.8 0.8 0.8
+    let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
+
+    let world = World [small, big, left, right] 
     let size = (200, 100)
     stdgen <- getStdGen
     putStr $ toPPM $ gammaCorrection $ evalState (render size cam world) stdgen
