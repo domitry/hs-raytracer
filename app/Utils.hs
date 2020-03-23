@@ -44,6 +44,12 @@ module Utils where
         let vec = V3 x y z
         if norm vec <= 1 then return vec else randomPointInUnitSphere
 
+    randomPointInUnitCircle::State StdGen (Float, Float)
+    randomPointInUnitCircle = do
+        x <- randomRng ((-1), 1)
+        y <- randomRng ((-1), 1)
+        if (x**2 + y**2) <= 1 then return (x, y) else randomPointInUnitCircle
+
     toPPM::Image->String
     toPPM im = unlines(header ++ body)
         where

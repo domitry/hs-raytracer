@@ -44,18 +44,21 @@ sampleXYs ns (cx, cy) = forM [1..ns] $ \_ -> do
     dy <- randomRng (0, 1)
     return (cx+dx, cy+dy)
 
-toRay::Camera->(Float, Float)->Ray
-toRay cam (u, v) = Ray orig dir
-    where
-        Camera orig llcorner hor vert = cam 
-        dist = llcorner + (u *^ hor) + (v *^ vert)
-        dir = dist - orig
+toRay::Camera->(Float, Float)->State StdGen Ray
+toRay cam (u, v) = do
+    let Camera orig llcorner (hor, vert) (nhor, nvert) lensr = cam
+    let dst = llcorner + (u *^ hor) + (v *^ vert)
+    (dx, dy) <- randomPointInUnitCircle
+    let offset = (dx*^nhor) + (dy*^nvert)
+    let orig2 = orig + lensr*^offset
+    let dir = dst - orig2
+    return $ Ray orig2 dir
 
 renderPixel::(Int, Int)->Camera->World->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) cam world cxy = do
     xys <- sampleXYs 100 cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
-    let rays = map ((toRay cam).toUV) xys
+    rays <- forM xys ((toRay cam).toUV)
     sampledCols <- forM rays (color 0 world)
     return $ average sampledCols
 
@@ -72,6 +75,8 @@ main = do
     -- asp, vfov, lookfrom, lookat, vup
     let cam0 = genCamera 2 90 (V3 0 0 0) (V3 0 0 (-1)) (V3 0 1 0) -- front
     let cam1 = genCamera 2 90 (V3 (-2) 2 1) (V3 0 0 (-1)) (V3 0 1 0) -- rear
+    let cam2 = genCamera 2 45 (V3 (-2) 1 1) (V3 0 0 (-1)) (V3 0 1 0) -- rear (near)
+    let cam_bokeh = genCameraWithBokeh 3 1 2 45 (V3 (-2) 1 1) (V3 0 0 (-1)) (V3 0 1 0)
     
     let pink = lambertian $ V3 0.8 0.3 0.3
     let green  = lambertian $ V3 0.8 0.8 0.0
@@ -86,5 +91,5 @@ main = do
     let world = World [small, big, left, right] 
     let size = (200, 100)
     
-    img <- render size cam1 world
+    img <- render size cam_bokeh world
     putStr $ toPPM $ gammaCorrection img
