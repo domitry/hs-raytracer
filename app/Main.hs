@@ -1,5 +1,6 @@
 import Control.Monad
 import Control.Monad.State
+import Control.Parallel.Strategies
 import System.Random
 import Data.Char
 import Data.Function
@@ -25,13 +26,13 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         V3 x y z = normalize dir
         t = 0.5*(y+1.0)
 
-color::World->Ray->Int->State StdGen Color
-color world ray depth
+color::Int->World->Ray->State StdGen Color
+color depth world ray
     | depth >= 50 = return black
     | otherwise = case (hitWorld world ray) of
         Nothing -> return $ background ray
         Just event -> do
-            let genReflectedColor = \reflected->(color world reflected (depth+1))
+            let genReflectedColor = \reflected->(color (depth+1) world reflected)
             let (Material scatter_) = getMaterial event
             (maybeReflected, attenuation) <- scatter_ ray event
             col <- maybe (return black) genReflectedColor maybeReflected
@@ -51,18 +52,25 @@ toRay cam (u, v) = Ray orig dir
         dist = llcorner + (u *^ hor) + (v *^ vert)
         dir = dist - orig
 
-render::(Int, Int)->Camera->World->State StdGen Image
+renderPixel::(Int, Int)->Camera->World->(Float, Float)->State StdGen Color
+renderPixel (nx, ny) cam world cxy = do
+    xys <- sampleXYs 100 cxy
+    let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
+    let rays = map ((toRay cam).toUV) xys
+    sampledCols <- forM rays (color 0 world)
+    return $ average sampledCols
+
+render::(Int, Int)->Camera->World->IO Image
 render size cam world = do
     let (nx, ny) = size
     let xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
-
-    cols <- forM xys $ \cxy -> do 
-        xys <- sampleXYs 100 cxy
-        let toUV = \(x, y)->(x/(fromIntegral nx),  1.0 - y/(fromIntegral ny))
-        let rays = map ((toRay cam).toUV) xys
-        sampledCols <- forM rays (\r->color world r 0) -- TODO: if a wrapper function is added: forM rays (color world)
-        return $ average sampledCols
     
+    gens <- forM [1..(nx*ny)] $ \_ -> do
+        newStdGen
+        getStdGen
+    
+    let render_ = renderPixel size cam world
+    let cols = parMap rpar (\(xy, g) -> evalState (render_ xy) g) (zip xys gens)
     return $ Image size cols
 
 main = do
@@ -79,5 +87,6 @@ main = do
 
     let world = World [small, big, left, right] 
     let size = (200, 100)
-    stdgen <- getStdGen
-    putStr $ toPPM $ gammaCorrection $ evalState (render size cam world) stdgen
+    
+    img <- render size cam world
+    putStr $ toPPM $ gammaCorrection img

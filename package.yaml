@@ -24,6 +24,7 @@ dependencies:
 - linear
 - random
 - mtl
+- parallel
 
 library:
   source-dirs: src
