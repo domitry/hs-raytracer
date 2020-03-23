@@ -69,7 +69,10 @@ render size cam world = do
     return $ Image size cols
 
 main = do
-    let cam = Camera (V3 0.0 0.0 0.0) (V3 (-2.0) (-1.0) (-1.0)) (V3 4.0 0.0 0.0) (V3 0.0 2.0 0.0)
+    -- asp, vfov, lookfrom, lookat, vup
+    let cam0 = genCamera 2 90 (V3 0 0 0) (V3 0 0 (-1)) (V3 0 1 0) -- front
+    let cam1 = genCamera 2 90 (V3 (-2) 2 1) (V3 0 0 (-1)) (V3 0 1 0) -- rear
+    
     let pink = lambertian $ V3 0.8 0.3 0.3
     let green  = lambertian $ V3 0.8 0.8 0.0
     let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
@@ -83,5 +86,5 @@ main = do
     let world = World [small, big, left, right] 
     let size = (200, 100)
     
-    img <- render size cam world
+    img <- render size cam1 world
     putStr $ toPPM $ gammaCorrection img
