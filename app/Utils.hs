@@ -30,6 +30,9 @@ module Utils where
                 (\(V3 r2 g2 b2)->(r1+r2,g1+g2,b1+b2,cnt+1))) (0.0,0.0,0.0,0) vecs
             nf = fromIntegral n
 
+    mkGens::StdGen->[StdGen]
+    mkGens gen = unfoldr (\gen-> Just $ split gen) gen
+
     randomRng::(Random a)=>(a, a)->State StdGen a
     randomRng rng = state (\gen0 -> randomR rng gen0)
 

@@ -64,13 +64,9 @@ render::(Int, Int)->Camera->World->IO Image
 render size cam world = do
     let (nx, ny) = size
     let xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
-    
-    gens <- forM [1..(nx*ny)] $ \_ -> do
-        newStdGen
-        getStdGen
-    
+    gen0 <- getStdGen
     let render_ = renderPixel size cam world
-    let cols = parMap rpar (\(xy, g) -> evalState (render_ xy) g) (zip xys gens)
+    let cols = parMap rpar (\(xy, g) -> evalState (render_ xy) g) (zip xys (mkGens gen0))
     return $ Image size cols
 
 main = do
