@@ -35,9 +35,9 @@ module Utils where
 
     randomPointInUnitSphere::State StdGen Vf
     randomPointInUnitSphere = do
-        x <- randomRng (0, 1)
-        y <- randomRng (0, 1)
-        z <- randomRng (0, 1)
+        x <- randomRng ((-1), 1)
+        y <- randomRng ((-1), 1)
+        z <- randomRng ((-1), 1)
         let vec = V3 x y z
         if norm vec <= 1 then return vec else randomPointInUnitSphere
 
