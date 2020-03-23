@@ -32,10 +32,9 @@ color depth world ray
     | otherwise = case (hitWorld world ray) of
         Nothing -> return $ background ray
         Just event -> do
-            let genReflectedColor = \reflected->(color (depth+1) world reflected)
-            let (Material scatter_) = getMaterial event
-            (maybeReflected, attenuation) <- scatter_ ray event
-            col <- maybe (return black) genReflectedColor maybeReflected
+            let mat = getMaterial event
+            (maybeReflected, attenuation) <- scatter mat ray event
+            col <- maybe (return black) (color (depth+1) world) maybeReflected
             return $ attenuation * col
 
 -- for anti-aliacing, sample ns points around the center of a pixel
