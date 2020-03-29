@@ -14,6 +14,7 @@ import Types
 import Utils
 import Hittables (sphere)
 import Materials (lambertian, metal, dielectric)
+import Samples
 
 hitWorld::World->Ray->Maybe HitEvent
 hitWorld (World hitables) ray = minimumByMaybe (comparing getParam) events
@@ -72,30 +73,10 @@ render size cam world = do
     return $ Image size cols
 
 main = do
-    -- asp, vfov, lookfrom, lookat, vup
-    let cam0 = genCamera 2 90 (V3 0 0 0) (V3 0 0 (-1)) (V3 0 1 0) -- front
-    let cam1 = genCamera 2 90 (V3 (-2) 2 1) (V3 0 0 (-1)) (V3 0 1 0) -- rear
-    let cam2 = genCamera 2 45 (V3 (-2) 1 1) (V3 0 0 (-1)) (V3 0 1 0) -- rear (near)
-    let cam_bokeh = genCameraWithBokeh 3 1 2 45 (V3 (-2) 1 1) (V3 0 0 (-1)) (V3 0 1 0)
-    
-    let blue = lambertian $ V3 0.1 0.2 0.5
-    let pink = lambertian $ V3 0.8 0.3 0.3
-    let green  = lambertian $ V3 0.8 0.8 0.0
-    let glass = dielectric 1.5
-
-    let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 blue
-    let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
-    
-    let mt1 = metal (V3 0.8 0.6 0.2) 0.0 -- super fuzzy 1.0
-    let mt2 = metal (V3 0.8 0.8 0.8) 0.3 -- gray & a bit fuzzy
-    let left = sphere (V3 1 0 (-1)) 0.5 mt1
-    let right = sphere (V3 (-1) 0 (-1)) 0.5 glass
-
-    let outer = sphere (V3 (-1) 0 (-1)) 0.5 glass
-    let inner = sphere (V3 (-1) 0 (-1)) (-0.45) glass
-
-    let world = World [small, big, left, inner, outer] 
-    let size = (200, 100)
-    
-    img <- render size cam0 world
+    gen0 <- getStdGen
+    let world = evalState genColorfulWorld gen0
+    let cam = cam_last
+    let size = (400, 200)
+    newStdGen
+    img <- render size cam world
     putStr $ toPPM $ gammaCorrection img

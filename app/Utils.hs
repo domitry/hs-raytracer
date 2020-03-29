@@ -36,6 +36,13 @@ module Utils where
     randomRng::(Random a)=>(a, a)->State StdGen a
     randomRng rng = state (\gen0 -> randomR rng gen0)
 
+    randomV3::(Random a)=>(a, a)->State StdGen (V3 a)
+    randomV3 rng = do
+        x <- randomRng rng
+        y <- randomRng rng
+        z <- randomRng rng
+        return $ V3 x y z
+
     randomPointInUnitSphere::State StdGen Vf
     randomPointInUnitSphere = do
         x <- randomRng ((-1), 1)
