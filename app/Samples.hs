@@ -45,10 +45,11 @@ module Samples where
             mat <- chooseMaterial prob
             return $ sphere pos 0.2 mat
 
+        let ground = sphere (V3 0 (-1000) 0) 1000 (lambertian (V3 0.5 0.5 0.5))
         let front = sphere (V3 4 1 0) 1 (metal (V3 0.7 0.6 0.5) 0.0)
         let center = sphere (V3 0 1 0) 1 (dielectric 1.5)
         let back = sphere (V3 (-4) 1 0) 1 (lambertian (V3 0.4 0.2 0.1))
-        return $ World $ [front, center, back] ++ shperes
+        return $ World $ [ground, front, center, back] ++ shperes
 
     genBubbleWorld::State StdGen World
     genBubbleWorld = do
