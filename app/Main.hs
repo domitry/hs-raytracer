@@ -17,7 +17,7 @@ import Materials (lambertian, metal, dielectric)
 import Samples
 
 hitWorld::World->Ray->Maybe HitEvent
-hitWorld (World hitables) ray = minimumByMaybe (comparing getParam) events
+hitWorld (World hitables) ray = minimumByMaybe (comparing evParam) events
     where
         events = catMaybes $ map (flip hit ray) hitables
 
@@ -33,7 +33,7 @@ color depth world ray
     | otherwise = case (hitWorld world ray) of
         Nothing -> return $ background ray
         Just event -> do
-            let mat = getMaterial event
+            let mat = evMat event
             (maybeReflected, attenuation) <- scatter mat ray event
             col <- maybe (return black) (color (depth+1) world) maybeReflected
             return $ attenuation * col
@@ -74,8 +74,10 @@ render size cam world = do
 
 main = do
     gen0 <- getStdGen
-    let world = evalState genColorfulWorld gen0
-    let cam = cam_last
+    -- let world = evalState genColorfulWorld gen0
+    -- let cam = cam_last
+    let cam = cam_near_rear
+    world <- genEarthWorld "/home/nishida/hslearn/Raytracer/small.ppm"
     let size = (400, 200)
     newStdGen
     img <- render size cam world

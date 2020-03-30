@@ -6,6 +6,7 @@ module Utils where
     import Data.Function
     import Data.List
     import System.Random
+    import System.IO
     import Types
 
     black::Vf
@@ -63,6 +64,21 @@ module Utils where
             Image (nx, ny) cols = im
             header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
             body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (V3 r g b) <- cols]
+
+    fromPPM::String->IO Image
+    fromPPM fname = do
+        str <- readFile fname
+        let ls = [line | line <- lines str, head line /= '#']
+        let wh = [read s | s <- words $ ls!!1]
+        let maxCol = read $ ls!!2
+        let (w, h) = (wh!!0, wh!!1)
+        cols <- forM [0..(w*h-1)] $ \i -> do
+            let j = 3+3*i
+            let r = read $ ls!!(j)
+            let g = read $ ls!!(j+1)
+            let b = read $ ls!!(j+2)
+            return $ V3 (r/maxCol) (g/maxCol) (b/maxCol)
+        return $ Image (w, h) cols
 
     gammaCorrection::Image->Image
     gammaCorrection (Image size cols) = Image size $ map (\(V3 r g b)->V3 (r**0.5) (g**0.5) (b**0.5)) cols

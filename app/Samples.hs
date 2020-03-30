@@ -7,14 +7,14 @@ module Samples where
     import Utils
     import Types
     import Hittables (sphere)
-    import Materials (lambertian, metal, dielectric)
+    import Materials (lambertian, metal, dielectric, fromColor, checker, fromImage)
 
     genLambertian::State StdGen Material
     genLambertian = do
         v1 <- randomV3 (0, 1)
         v2 <- randomV3 (0, 1)
         let albedo = v1*v2
-        return $ lambertian albedo
+        return $ lambertian $ fromColor albedo
 
     genMetal::State StdGen Material
     genMetal = do
@@ -27,6 +27,19 @@ module Samples where
         | prob < 0.8  = genLambertian
         | prob < 0.95 = genMetal
         | otherwise = return $ dielectric 1.5
+
+    genEarthWorld::String->IO World
+    genEarthWorld fname = do
+        img <- fromPPM fname
+        let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
+        let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
+        let mat = lambertian $ fromImage img
+        let earth = sphere (V3 0.0 0.0 (-1.0)) 0.5 mat  
+        let mt = metal (V3 0.8 0.6 0.2) 0.0
+        let left = sphere (V3 1 0 (-1)) 0.5 mt
+        let glass = dielectric 1.5
+        let right = sphere (V3 (-1) 0 (-1)) 0.5 glass
+        return $ World [big, earth, left, right] 
 
     genColorfulWorld::State StdGen World
     genColorfulWorld = do
@@ -45,16 +58,17 @@ module Samples where
             mat <- chooseMaterial prob
             return $ sphere pos 0.2 mat
 
-        let ground = sphere (V3 0 (-1000) 0) 1000 (lambertian (V3 0.5 0.5 0.5))
+        let ch = checker (V3 0.2 0.3 0.1) (V3 0.9 0.9 0.9)
+        let ground = sphere (V3 0 (-1000) 0) 1000 (lambertian ch)
         let front = sphere (V3 4 1 0) 1 (metal (V3 0.7 0.6 0.5) 0.0)
         let center = sphere (V3 0 1 0) 1 (dielectric 1.5)
-        let back = sphere (V3 (-4) 1 0) 1 (lambertian (V3 0.4 0.2 0.1))
+        let back = sphere (V3 (-4) 1 0) 1 (lambertian $ fromColor (V3 0.4 0.2 0.1))
         return $ World $ [ground, front, center, back] ++ shperes
 
     genBubbleWorld::State StdGen World
     genBubbleWorld = do
-        let blue = lambertian $ V3 0.1 0.2 0.5
-        let green  = lambertian $ V3 0.8 0.8 0.0
+        let blue = lambertian $ fromColor $ V3 0.1 0.2 0.5
+        let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 blue
         let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
         
@@ -69,8 +83,8 @@ module Samples where
 
     genMetalWorld::State StdGen World
     genMetalWorld = do
-        let pink = lambertian $ V3 0.8 0.3 0.3
-        let green  = lambertian $ V3 0.8 0.8 0.0
+        let pink = lambertian $ fromColor $ V3 0.8 0.3 0.3
+        let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
         let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
         

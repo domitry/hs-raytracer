@@ -6,6 +6,43 @@ module Materials
         import Linear.Vector
         import Linear.Metric
         import Data.Maybe
+        import Data.Vector
+        import System.IO
+        import Control.Monad
+
+        fromImage::Image->Texture
+        fromImage (Image (w, h) cols) = Texture { pickColor=imp_pick }
+            where
+                vecCols = fromList cols 
+                imp_pick (u, v) _ = case (vecCols!?(x+y*w)) of
+                    Nothing  ->  V3 0.77 0.11 0.54 -- pink if not found
+                    Just col -> col
+                    where
+                        y = floor $ (1-v)*((fromIntegral h)-0.001)
+                        x = floor $ u*(fromIntegral w)
+
+        fromColor::Color->Texture
+        fromColor albedo = Texture { pickColor=imp_pick }
+            where
+                imp_pick uv xy =  albedo
+
+        checker::Color->Color->Texture
+        checker col1 col2 = Texture { pickColor=imp_pick }
+            where
+                imp_pick _ (V3 x y z) = if sign>0 then col1 else col2
+                    where
+                        sign = (sin$10*x)*(sin$10*y)*(sin$10*z)
+
+        -- diffuse
+        lambertian::Texture->Material
+        lambertian tex = Material { scatter=imp_scatter }
+            where
+                imp_scatter _ ev = do
+                    let (n, point, uv) = (evNormal ev, evPoint ev, evUV ev)
+                    v <- randomPointInUnitSphere
+                    let v' = n + v
+                    let col = pickColor tex uv point
+                    return $ (Just $ Ray point v', col)
 
         -- be careful that dot vin nv < 0 and nv is normalized
         reflect::Vf->Vf->Vf
@@ -22,20 +59,12 @@ module Materials
                 vert = (-1) *^ nv -- vertical comp of vin (sign is the same as vin)
                 d = 1 - (n_over_n' * n_over_n')*(1-dt*dt)
 
-        -- lambertian
-        lambertian::Color->Material
-        lambertian albedo = Material { scatter=imp_scatter }
-            where
-                imp_scatter _ (HitEvent _ point n _) = do    
-                    v <- randomPointInUnitSphere
-                    let v' = n + v
-                    return $ (Just $ Ray point v', albedo)
-
         -- metal
         metal::Color->Float->Material
         metal albedo fuzziness = Material { scatter=imp_scatter }
             where
-                imp_scatter (Ray _ vin) (HitEvent _ point n _) = do
+                imp_scatter (Ray _ vin) ev = do
+                    let (n, point) = (evNormal ev, evPoint ev)
                     let f = bound (0, 1) fuzziness
                     s <- randomPointInUnitSphere
                     let vout = (reflect vin n) + f*^s
@@ -52,7 +81,8 @@ module Materials
                         sqrt_r0 = (1-ri)/(1+ri)
                         r0 = sqrt_r0*sqrt_r0
 
-                imp_scatter (Ray _ vin) (HitEvent _ point n _) = do
+                imp_scatter (Ray _ vin) ev = do
+                    let (n, point) = (evNormal ev, evPoint ev)
                     let nvin = normalize vin
                     let nvinn = dot nvin n
                     

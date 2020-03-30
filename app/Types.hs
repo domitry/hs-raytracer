@@ -10,16 +10,11 @@ module Types where
     data Image = Image (Int, Int) [Color] deriving Show
     data Ray = Ray !Vf !Vf deriving Show -- orig, dir
     data Camera = Camera Vf Vf (Vf, Vf) (Vf, Vf) Float deriving Show -- orig, lower left corner, (hor, vert), (nhor, nvert), lens radius
-    data HitEvent = HitEvent Float Vf Vf Material -- param, point, normal
+    data HitEvent = HitEvent { evParam::Float, evPoint::Vf, evNormal::Vf, evUV::(Float,Float), evMat::Material }
     data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
     data Material = Material{ scatter::Ray->HitEvent->State StdGen (Maybe Ray, Color) } -- ray_in, event -> (reflected, attenuation)
+    data Texture = Texture{ pickColor::(Float, Float)->Vf->Color } -- (u, v)->point->col
     data World = World [Hittable]
-
-    getParam::HitEvent->Float
-    getParam (HitEvent param _ _ _) = param
-
-    getMaterial::HitEvent->Material
-    getMaterial (HitEvent _ _ _ mat) = mat
 
     extend::Ray->Float->Vf
     extend (Ray orig dir) t = orig + t*^dir
