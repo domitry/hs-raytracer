@@ -14,7 +14,23 @@ module Types where
     data Hittable = Hittable{ hit::Ray->Maybe HitEvent }
     data Material = Material{ scatter::Ray->HitEvent->State StdGen (Maybe Ray, Color) } -- ray_in, event -> (reflected, attenuation)
     data Texture = Texture{ pickColor::(Float, Float)->Vf->Color } -- (u, v)->point->col
-    data World = World [Hittable]
+    data World = World Hittable -- parent
+    data AABB = AABB (Float, Float) (Float, Float) (Float, Float)
+    
+    -- optimized code by Andrew Kensler at Pixar
+    hitBox::AABB->Ray->Bool
+    hitBox (AABB (x0,x1) (y0,y1) (z0,z1)) (Ray (V3 ax ay az) (V3 bx by bz)) = tmax > tmin
+            where
+                xrng = sort [(x0-ax)/bx, (x1-ax)/bx]
+                yrng = sort [(y0-ay)/by, (y1-ay)/by]
+                zrng = sort [(z0-az)/bz, (z1-az)/bz]
+                int (amin, amax) (bmin, bmax) = if tmax>tmin then (tmin, tmax) else (0, 0) where
+                    (tmin, tmax) = (max amin bmin, min amax bmax) 
+                (tmin, tmax) = int (int xrng yrng) (int xrng zrng)
+
+    union::AABB->AABB->AABB
+    union (AABB ax ay az) (AABB bx by bz) = AABB (uni ax bx) (uni ay by) (uni az bz)
+        where uni (amin, amax) (bmin, bmax) = (min amin bmin, max amax bmax)
 
     extend::Ray->Float->Vf
     extend (Ray orig dir) t = orig + t*^dir
