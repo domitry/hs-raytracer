@@ -26,6 +26,8 @@ dependencies:
 - random
 - mtl
 - parallel
+- time
+- random-shuffle
 
 library:
   source-dirs: src

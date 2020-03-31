@@ -2,6 +2,8 @@ import Control.Monad
 import Control.Monad.State
 import Control.Parallel.Strategies
 import System.Random
+import System.IO
+import Data.Time
 import Data.Char
 import Data.Function
 import Data.Maybe
@@ -13,7 +15,7 @@ import Linear.Metric
 import Types
 import Utils
 import Hittables (sphere)
-import Materials (lambertian, metal, dielectric)
+import Materials (lambertian, metal, dielectric, checker, perlin)
 import Samples
 
 background::Ray->Color
@@ -69,13 +71,14 @@ render size cam world = do
 
 main = do
     gen0 <- getStdGen
+    let cam = cam_last
+    let world = evalState (genMarbleWorld) gen0
     newStdGen
 
-    -- earth <- fromPPM "/home/nishida/hslearn/Raytracer/small.ppm"
-    -- let cam = cam_near_rear
-    -- let world = evalState (genEarthWorld earth) gen0
-    let cam = cam_last
-    let world = evalState (genColorfulWorld) gen0
-
+    start <- getCurrentTime
     img <- render (400, 200) cam world
     putStr $ toPPM $ gammaCorrection img
+    end <- getCurrentTime
+    hPutStrLn stderr ("Rendering Time: " ++ (show $ diffUTCTime end start))
+
+    putStr $ toPPM img

@@ -20,11 +20,11 @@ module Hittables where
             (bmin, _) = rng $ bounding_box b
     
     genChildren::(Hittable->Hittable->Ordering)->[Hittable]->State StdGen (Hittable, Hittable)
-    genChildren compare hs
+    genChildren comp hs
         | n == 1 = return $ (hs!!0, hs!!0)
         | n == 2 = return $ (hs!!0, hs!!1)
         | n >= 3 = do
-            let (lhalf, rhalf) = splitAt (n `div` 2) (sortBy compare hs)
+            let (lhalf, rhalf) = splitAt (n `div` 2) (sortBy comp hs)
             left <- bvh_node lhalf
             right <- bvh_node rhalf
             return $ (left, right)

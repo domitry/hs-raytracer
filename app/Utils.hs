@@ -5,7 +5,9 @@ module Utils where
     import Linear.Metric
     import Data.Function
     import Data.List
+    import Data.Vector (fromList, (!), Vector)
     import System.Random
+    import System.Random.Shuffle
     import System.IO
     import Types
 
@@ -38,6 +40,11 @@ module Utils where
         z <- randomRng rng
         return $ V3 x y z
 
+    randomNormalizedV3::State StdGen Vf
+    randomNormalizedV3 = do
+        v <- randomV3 ((-1), 1)
+        return $ normalize v
+
     randomPointInUnitSphere::State StdGen Vf
     randomPointInUnitSphere = do
         x <- randomRng ((-1), 1)
@@ -52,6 +59,11 @@ module Utils where
         y <- randomRng ((-1), 1)
         if (x**2 + y**2) <= 1 then return (x, y) else randomPointInUnitCircle
 
+    shuffledIndices::Int->State StdGen (Vector Int)
+    shuffledIndices n = do
+        gen1 <- (state (\gen0 -> split gen0))
+        return $ fromList $ shuffle' [0..(n-1)] n gen1
+
     toPPM::Image->String
     toPPM im = unlines(header ++ body)
         where
@@ -65,14 +77,22 @@ module Utils where
         let ls = [line | line <- lines str, head line /= '#']
         let wh = [read s | s <- words $ ls!!1]
         let maxCol = read $ ls!!2
+        let lCols = drop 3 ls
+        let vecCols = fromList $ [(read l)::Float | l <- lCols]
         let (w, h) = (wh!!0, wh!!1)
         cols <- forM [0..(w*h-1)] $ \i -> do
-            let j = 3+3*i
-            let r = read $ ls!!(j)
-            let g = read $ ls!!(j+1)
-            let b = read $ ls!!(j+2)
+            let r = vecCols!(3*i)
+            let g = vecCols!(3*i+1)
+            let b = vecCols!(3*i+2)
             return $ V3 (r/maxCol) (g/maxCol) (b/maxCol)
         return $ Image (w, h) cols
+
+    -- for debugging texture
+    mkImageFromTexture::(Int, Int)->Texture->Image
+    mkImageFromTexture (nx, ny) tex = Image (nx, ny) cols where
+        pick = pickColor tex
+        xys = [((fromIntegral x)/(fromIntegral nx), (fromIntegral y)/(fromIntegral ny)) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
+        cols = [pick (0,0) (V3 x y 0) | (x, y) <- xys]
 
     gammaCorrection::Image->Image
     gammaCorrection (Image size cols) = Image size $ map (\(V3 r g b)->V3 (r**0.5) (g**0.5) (b**0.5)) cols

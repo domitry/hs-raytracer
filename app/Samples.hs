@@ -93,6 +93,22 @@ module Samples where
         let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
         genWorld [small, big, right, left]
 
+    genNoiseWorld::State StdGen World
+    genNoiseWorld = do
+        turb <- turbulence 4
+        let mat = lambertian turb
+        let small = sphere (V3 0 2 0) 2 mat
+        let big = sphere (V3 0 (-1000) 0) 1000 mat
+        genWorld [small, big]
+
+    genMarbleWorld::State StdGen World
+    genMarbleWorld = do
+        marb <- marble 4
+        let mat = lambertian marb
+        let small = sphere (V3 0 2 0) 2 mat
+        let big = sphere (V3 0 (-1000) 0) 1000 mat
+        genWorld [small, big]
+
     cam_bokeh::Camera
     -- focus_dist, aperture, asp, vfov, lookfrom, lookat, vup
     cam_bokeh = genCameraWithBokeh 3 1 2 45 (V3 (-2) 1 1) (V3 0 0 (-1)) (V3 0 1 0)

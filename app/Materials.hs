@@ -3,9 +3,12 @@ module Materials where
     import Linear.Vector
     import Linear.Metric
     import Data.Maybe
-    import Data.Vector
+    import Data.Vector ((!?), (!), fromList, Vector)
+    import Data.Bits (xor)
     import System.IO
+    import System.Random
     import Control.Monad
+    import Control.Monad.State
     import Types
     import Utils
 
@@ -31,6 +34,64 @@ module Materials where
             imp_pick _ (V3 x y z) = if sign>0 then col1 else col2
                 where
                     sign = (sin$10*x)*(sin$10*y)*(sin$10*z)
+
+    -- we need n^3 random vectors, while there are only n vectors
+    -- use hash to avoid ocuppying n^3 memory space.
+    genLookUp::Int->Vector a->State StdGen ((Int, Int, Int)->a)
+    genLookUp n arr = do
+        xtab <- shuffledIndices n
+        ytab <- shuffledIndices n
+        ztab <- shuffledIndices n
+        let lookup = \(x, y, z) -> arr!((xtab!x) `xor` (ytab!y) `xor` (ztab!z))
+        let limit = \(x, y, z) -> (x `mod` (n-1), y `mod` (n-1), z `mod` (n-1))
+        return $ lookup.limit
+
+    -- good article about Perlin noise: http://eastfarthing.com/blog/2015-04-21-noise/
+    genPerlin::State StdGen (Vf->Float)
+    genPerlin = do
+        let n = 256
+        vecs <- forM [1..n] (\i->randomNormalizedV3)
+        lookup <- genLookUp n (fromList vecs)
+        return $ genNoiseFunc n lookup
+        where
+            genNoiseFunc n lookup = noise where
+                noise (V3 x y z) = col where
+                    -- hermite cubic function, care that t \in [-1, 1]
+                    hcubic t = 1-(3-2*(abs t))*t*t
+                    (i, j, k) = (floor x, floor y, floor z)
+                    (u, v, w) = (x-fromIntegral i, y-fromIntegral j, z-fromIntegral k)
+                    ijks = [(i+di,j+dj,k+dk) | di<-[0,1], dj<-[0,1], dk<-[0,1]]
+                    uvws = [(u-di,v-dj,w-dk) | di<-[0,1], dj<-[0,1], dk<-[0,1]]
+                    dots = [dot (lookup ijk) (V3 u v w) | (ijk,(u,v,w)) <- zip ijks uvws]
+                    hers = [(hcubic u)*(hcubic v)*(hcubic w) | (u, v, w) <- uvws]
+                    col = sum [d*h | (d, h) <- zip dots hers] -- [-1, 1]
+
+    accPerlin::(Vf->Float)->Int->(Vf->Float)
+    accPerlin noise nlayer xyz = total where
+        (total, _, _) = foldl (\(acc, w, p) _ -> 
+            (acc+w*(noise p), 0.5*w, 2*^p)) (0, 1, xyz) [1..nlayer]
+
+    perlin::Float->State StdGen Texture
+    perlin scale = do
+        noise <- genPerlin
+        return $ Texture { pickColor=(imp_pick noise) } where
+            imp_pick noise _ xyz = ((1+noise (scale*^xyz))/2)*^(V3 1 1 1)
+
+    turbulence::Float->State StdGen Texture
+    turbulence scale = do
+        noise <- genPerlin
+        return $ Texture { pickColor=(imp_pick noise) } where
+            imp_pick noise _ xyz = V3 v v v where
+                v = abs $ accPerlin noise 7 (scale*^xyz)
+
+    marble::Float->State StdGen Texture
+    marble scale = do
+        noise <- genPerlin
+        return $ Texture { pickColor=(imp_pick noise) } where
+            imp_pick noise _ xyz = V3 v v v where
+                turb = accPerlin noise 7 xyz
+                V3 _ _ z = xyz
+                v = (1 + sin (scale*z+10*turb))/2
 
     -- diffuse
     lambertian::Texture->Material
