@@ -28,8 +28,8 @@ module Samples where
         | prob < 0.95 = genMetal
         | otherwise = return $ dielectric 1.5
 
-    genEarthWorld::Image->State StdGen World
-    genEarthWorld img = do
+    genEarthScene::Image->State StdGen Scene
+    genEarthScene img = do
         let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
         let mat = lambertian $ fromImage img
@@ -38,10 +38,11 @@ module Samples where
         let left = sphere (V3 1 0 (-1)) 0.5 mt
         let glass = dielectric 1.5
         let right = sphere (V3 (-1) 0 (-1)) 0.5 glass
-        genWorld [big, earth, left, right] 
+        world <- genWorld [big, earth, left, right]
+        return $ Scene world cam_near_rear background_sky
 
-    genColorfulWorld::State StdGen World
-    genColorfulWorld = do
+    genColorfulScene::State StdGen Scene
+    genColorfulScene = do
         let xzs = [(x, z) | z<-[-11..11], x<-[-11..11]]
 
         tmps <- forM xzs $ \(cx, cz) -> do
@@ -62,10 +63,11 @@ module Samples where
         let front = sphere (V3 4 1 0) 1 (metal (V3 0.7 0.6 0.5) 0.0)
         let center = sphere (V3 0 1 0) 1 (dielectric 1.5)
         let back = sphere (V3 (-4) 1 0) 1 (lambertian $ fromColor (V3 0.4 0.2 0.1))
-        genWorld $ [ground, front, center, back] ++ shperes
+        world <- genWorld $ [ground, front, center, back] ++ shperes
+        return $ Scene world cam_last background_sky
 
-    genBubbleWorld::State StdGen World
-    genBubbleWorld = do
+    genBubbleScene::State StdGen Scene
+    genBubbleScene = do
         let blue = lambertian $ fromColor $ V3 0.1 0.2 0.5
         let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 blue
@@ -78,10 +80,11 @@ module Samples where
         let glass = dielectric 1.5
         let outer = sphere (V3 (-1) 0 (-1)) 0.5 glass
         let inner = sphere (V3 (-1) 0 (-1)) (-0.45) glass
-        genWorld [small, big, left, inner, outer] 
+        world <- genWorld [small, big, left, inner, outer] 
+        return $ Scene world cam_front background_sky
 
-    genMetalWorld::State StdGen World
-    genMetalWorld = do
+    genMetalScene::State StdGen Scene
+    genMetalScene = do
         let pink = lambertian $ fromColor $ V3 0.8 0.3 0.3
         let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let small = sphere (V3 0.0 0.0 (-1.0)) 0.5 pink
@@ -91,23 +94,26 @@ module Samples where
         let mt2 = metal (V3 0.8 0.8 0.8) 0.3 -- gray & a bit fuzzy
         let left = sphere (V3 1 0 (-1)) 0.5 mt1
         let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
-        genWorld [small, big, right, left]
+        world <- genWorld [small, big, right, left]
+        return $ Scene world cam_front background_sky
 
-    genNoiseWorld::State StdGen World
-    genNoiseWorld = do
+    genNoiseScene::State StdGen Scene
+    genNoiseScene = do
         turb <- turbulence 4
         let mat = lambertian turb
         let small = sphere (V3 0 2 0) 2 mat
         let big = sphere (V3 0 (-1000) 0) 1000 mat
-        genWorld [small, big]
+        world <- genWorld [small, big]
+        return $ Scene world cam_last background_sky
 
-    genMarbleWorld::State StdGen World
-    genMarbleWorld = do
+    genMarbleScene::State StdGen Scene
+    genMarbleScene = do
         marb <- marble 4
         let mat = lambertian marb
         let small = sphere (V3 0 2 0) 2 mat
         let big = sphere (V3 0 (-1000) 0) 1000 mat
-        genWorld [small, big]
+        world <- genWorld [small, big]
+        return $ Scene world cam_last background_sky
 
     cam_bokeh::Camera
     -- focus_dist, aperture, asp, vfov, lookfrom, lookat, vup
@@ -125,3 +131,12 @@ module Samples where
 
     cam_last::Camera
     cam_last = genCameraWithBokeh 10 0.1 2 20 (V3 13 2 3) (V3 0 0 0) (V3 0 1 0)
+
+    background_sky::Ray->Color
+    background_sky (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
+        where
+            V3 x y z = normalize dir
+            t = 0.5*(y+1.0)
+
+    background_night::Ray->Color
+    background_night _ = V3 0 0 0

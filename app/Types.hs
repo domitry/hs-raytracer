@@ -11,12 +11,15 @@ module Types where
     data Camera = Camera Vf Vf (Vf, Vf) (Vf, Vf) Float deriving Show -- orig, lower left corner, (hor, vert), (nhor, nvert), lens radius
     data HitEvent = HitEvent { evParam::Float, evPoint::Vf, evNormal::Vf, evUV::(Float,Float), evMat::Material }
     data Hittable = Hittable{ hit::(Float, Float)->Ray->Maybe HitEvent, bounding_box::AABB }
-    data Material = Material{ scatter::Ray->HitEvent->State StdGen (Maybe Ray, Color) } -- ray_in, event -> (reflected, attenuation)
+    -- scatter does not return Maybe (Ray, Color) instead of (Maybe Ray, Color) because metal can return color without any scattered ray.
+    data Material = Material{ scatter::Ray->HitEvent->State StdGen (Maybe Ray, Color), emit::HitEvent->Color } 
     data Texture = Texture{ pickColor::(Float, Float)->Vf->Color } -- (u, v)->point->col
     data AABB = AABB (Float, Float) (Float, Float) (Float, Float)
     type Color = V3 Float
     type Vf = V3 Float
     type World = Hittable
+    type Background = Ray->Color
+    data Scene = Scene World Camera Background
     
     -- "slab" algorithm
     -- optimized code by Andrew Kensler at Pixar

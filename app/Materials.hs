@@ -93,9 +93,12 @@ module Materials where
                 V3 _ _ z = xyz
                 v = (1 + sin (scale*z+10*turb))/2
 
+    emitNone::HitEvent->Color
+    emitNone ev = V3 0 0 0
+
     -- diffuse
     lambertian::Texture->Material
-    lambertian tex = Material { scatter=imp_scatter }
+    lambertian tex = Material { scatter=imp_scatter, emit=emitNone }
         where
             imp_scatter _ ev = do
                 let (n, point, uv) = (evNormal ev, evPoint ev, evUV ev)
@@ -121,7 +124,7 @@ module Materials where
 
     -- metal
     metal::Color->Float->Material
-    metal albedo fuzziness = Material { scatter=imp_scatter }
+    metal albedo fuzziness = Material { scatter=imp_scatter, emit=emitNone }
         where
             imp_scatter (Ray _ vin) ev = do
                 let (n, point) = (evNormal ev, evPoint ev)
@@ -134,7 +137,7 @@ module Materials where
     
     -- glass
     dielectric::Float->Material
-    dielectric ri = Material { scatter=imp_scatter }
+    dielectric ri = Material { scatter=imp_scatter, emit=emitNone }
         where
             schlick cosine ri = r0+(1-r0)*((1-cosine)**5)
                 where
@@ -160,3 +163,9 @@ module Materials where
                         Just refracted -> if prob < prob_reflect then reflected else refracted
                 
                 return (Just $ Ray point vout, V3 1 1 1)
+
+    diffuseLight::Color->Material
+    diffuseLight col = Material { scatter=scatterNone, emit=imp_emit } where
+        scatterNone ray ev = return (Nothing, V3 0 0 0)
+        imp_emit ev = col
+    
