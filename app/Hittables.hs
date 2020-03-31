@@ -82,3 +82,19 @@ module Hittables where
             box = AABB (cx-r, cx+r) (cy-r, cy+r) (cz-r, cz+r)  
                 where
                     (V3 cx cy cz) = vc
+
+    xyplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
+    xyplane (x0,y0) (x1,y1) z mat = Hittable { hit=imp_hit, bounding_box=box } where
+        box = AABB (x0,x1) (y0,y1) (z-1e-4,z+1e-4)
+        imp_hit (tmin, tmax) (Ray va vb)
+            | cx>x0 && cx<x1 && cy>y0 && cy<y1 && t>tmin && t<tmax = Just event
+            | otherwise = Nothing
+            where
+                (V3 ax ay az) = va
+                (V3 bx by bz) = vb
+                t = (z-az)/bz
+                point = va + t*^vb
+                (V3 cx cy _) = point
+                uv = (0, 0) -- TODO: implement getUV
+                normal = V3 0 0 1
+                event = HitEvent {evParam=t, evPoint=point, evNormal=normal, evUV=uv, evMat=mat}

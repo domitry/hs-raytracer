@@ -50,7 +50,7 @@ toRay cam (u, v) = do
 
 renderPixel::(Int, Int)->Scene->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) (Scene world cam background) cxy = do
-    xys <- sampleXYs 100 cxy
+    xys <- sampleXYs 200 cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
     rays <- forM xys ((toRay cam).toUV)
     sampledCols <- forM rays (color 0 world background)
@@ -67,7 +67,7 @@ render size scene = do
 
 main = do
     gen0 <- getStdGen
-    let scene = evalState (genMarbleScene) gen0
+    let scene = evalState (genDarkMarbleScene) gen0
     newStdGen
 
     start <- getCurrentTime
