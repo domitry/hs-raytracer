@@ -69,7 +69,8 @@ module Utils where
         where
             Image (nx, ny) cols = im
             header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
-            body = [unwords $ map (\c -> show $ floor $ 255.9*c) [r,g,b] | (V3 r g b) <- cols]
+            f2i = \f-> floor $ 255.9*(bound (0, 1) f)
+            body = [unwords $ map (show.f2i) [r,g,b] | (V3 r g b) <- cols]
 
     fromPPM::String->IO Image
     fromPPM fname = do
