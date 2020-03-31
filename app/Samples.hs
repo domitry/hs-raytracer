@@ -6,8 +6,8 @@ module Samples where
     import Linear.Metric
     import Utils
     import Types
-    import Hittables (sphere)
-    import Materials (lambertian, metal, dielectric, fromColor, checker, fromImage)
+    import Hittables (sphere, genWorld)
+    import Materials
 
     genLambertian::State StdGen Material
     genLambertian = do
@@ -28,9 +28,8 @@ module Samples where
         | prob < 0.95 = genMetal
         | otherwise = return $ dielectric 1.5
 
-    genEarthWorld::String->IO World
-    genEarthWorld fname = do
-        img <- fromPPM fname
+    genEarthWorld::Image->State StdGen World
+    genEarthWorld img = do
         let green  = lambertian $ fromColor $ V3 0.8 0.8 0.0
         let big = sphere (V3 0.0 (-100.5) (-1.0)) 100.0 green
         let mat = lambertian $ fromImage img
@@ -39,7 +38,7 @@ module Samples where
         let left = sphere (V3 1 0 (-1)) 0.5 mt
         let glass = dielectric 1.5
         let right = sphere (V3 (-1) 0 (-1)) 0.5 glass
-        return $ World [big, earth, left, right] 
+        genWorld [big, earth, left, right] 
 
     genColorfulWorld::State StdGen World
     genColorfulWorld = do
@@ -63,7 +62,7 @@ module Samples where
         let front = sphere (V3 4 1 0) 1 (metal (V3 0.7 0.6 0.5) 0.0)
         let center = sphere (V3 0 1 0) 1 (dielectric 1.5)
         let back = sphere (V3 (-4) 1 0) 1 (lambertian $ fromColor (V3 0.4 0.2 0.1))
-        return $ World $ [ground, front, center, back] ++ shperes
+        genWorld $ [ground, front, center, back] ++ shperes
 
     genBubbleWorld::State StdGen World
     genBubbleWorld = do
@@ -79,7 +78,7 @@ module Samples where
         let glass = dielectric 1.5
         let outer = sphere (V3 (-1) 0 (-1)) 0.5 glass
         let inner = sphere (V3 (-1) 0 (-1)) (-0.45) glass
-        return $ World [small, big, left, inner, outer] 
+        genWorld [small, big, left, inner, outer] 
 
     genMetalWorld::State StdGen World
     genMetalWorld = do
@@ -92,7 +91,7 @@ module Samples where
         let mt2 = metal (V3 0.8 0.8 0.8) 0.3 -- gray & a bit fuzzy
         let left = sphere (V3 1 0 (-1)) 0.5 mt1
         let right = sphere (V3 (-1) 0 (-1)) 0.5 mt2
-        return $ World [small, big, right, left]
+        genWorld [small, big, right, left]
 
     cam_bokeh::Camera
     -- focus_dist, aperture, asp, vfov, lookfrom, lookat, vup

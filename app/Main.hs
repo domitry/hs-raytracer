@@ -16,11 +16,6 @@ import Hittables (sphere)
 import Materials (lambertian, metal, dielectric)
 import Samples
 
-hitWorld::World->Ray->Maybe HitEvent
-hitWorld (World hitables) ray = minimumByMaybe (comparing evParam) events
-    where
-        events = catMaybes $ map (flip hit ray) hitables
-
 background::Ray->Color
 background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
     where
@@ -30,7 +25,7 @@ background (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
 color::Int->World->Ray->State StdGen Color
 color depth world ray
     | depth >= 50 = return black
-    | otherwise = case (hitWorld world ray) of
+    | otherwise = case (hit world (1e-3,1e5) ray) of
         Nothing -> return $ background ray
         Just event -> do
             let mat = evMat event
@@ -74,11 +69,13 @@ render size cam world = do
 
 main = do
     gen0 <- getStdGen
-    -- let world = evalState genColorfulWorld gen0
-    -- let cam = cam_last
-    let cam = cam_near_rear
-    world <- genEarthWorld "/home/nishida/hslearn/Raytracer/small.ppm"
-    let size = (400, 200)
     newStdGen
-    img <- render size cam world
+
+    -- earth <- fromPPM "/home/nishida/hslearn/Raytracer/small.ppm"
+    -- let cam = cam_near_rear
+    -- let world = evalState (genEarthWorld earth) gen0
+    let cam = cam_last
+    let world = evalState (genColorfulWorld) gen0
+
+    img <- render (400, 200) cam world
     putStr $ toPPM $ gammaCorrection img

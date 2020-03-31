@@ -12,17 +12,11 @@ module Utils where
     black::Vf
     black = V3 0 0 0
 
-    boundMaybe::(Float, Float)->Float->Maybe Float
-    boundMaybe (tmin, tmax) t = if (t > tmin) && (t < tmax) then Just t else Nothing
-
     bound::(Float, Float)->Float->Float
     bound (tmin, tmax) t
         | t < tmin = tmin
         | t > tmax = tmax
         | otherwise = t
-
-    minimumByMaybe::(a -> a -> Ordering) -> [a] -> Maybe a
-    minimumByMaybe lmd lst = if null lst then Nothing else Just $ minimumBy lmd lst
 
     average::[Vf] -> Vf
     average vecs = V3 (rt/nf) (gt/nf) (bt/nf)
