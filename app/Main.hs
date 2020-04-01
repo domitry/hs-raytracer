@@ -22,7 +22,7 @@ import Samples
 color::Int->World->Background->Ray->State StdGen Color
 color depth world background ray
     | depth >= 50 = return black
-    | otherwise = case (hit world (1e-3,1e5) ray) of
+    | otherwise = case (hit world (1e-3,1e20) ray) of
         Nothing -> return $ background ray
         Just event -> do
             let mat = evMat event
@@ -50,7 +50,7 @@ toRay cam (u, v) = do
 
 renderPixel::(Int, Int)->Scene->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) (Scene world cam background) cxy = do
-    xys <- sampleXYs 200 cxy
+    xys <- sampleXYs 400 cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
     rays <- forM xys ((toRay cam).toUV)
     sampledCols <- forM rays (color 0 world background)
@@ -62,7 +62,7 @@ render size scene = do
     let xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
     gen0 <- getStdGen
     let render_ = renderPixel size scene
-    let cols = parMap rpar (\(xy, g) -> evalState (render_ xy) g) (zip xys (mkGens gen0))
+    let cols = parMap rdeepseq (\(xy, g) -> evalState (render_ xy) g) (zip xys (mkGens gen0))
     return $ Image size cols
 
 main = do

@@ -45,19 +45,26 @@ module Utils where
         v <- randomV3 ((-1), 1)
         return $ normalize v
 
+    randomUnitVector::State StdGen Vf
+    randomUnitVector = do
+        z <- randomRng (-1, 1)
+        theta <- randomRng (0, 2*pi)
+        let r = sqrt (1-z*z)
+        return $ V3 (r*(cos theta)) (r*(sin theta)) z
+
     randomPointInUnitSphere::State StdGen Vf
     randomPointInUnitSphere = do
-        x <- randomRng ((-1), 1)
-        y <- randomRng ((-1), 1)
-        z <- randomRng ((-1), 1)
-        let vec = V3 x y z
-        if norm vec <= 1 then return vec else randomPointInUnitSphere
+        theta <- randomRng ((-pi)/2, pi/2)
+        phi <- randomRng (0, 2*pi)
+        r <- randomRng (0, 1)
+        let (ct, st, cp, sp) = (cos theta, sin theta, cos phi, sin phi)
+        return $ V3 (r*cp*ct) (r*sp*ct) (r*st)
 
     randomPointInUnitCircle::State StdGen (Float, Float)
     randomPointInUnitCircle = do
-        x <- randomRng ((-1), 1)
-        y <- randomRng ((-1), 1)
-        if (x**2 + y**2) <= 1 then return (x, y) else randomPointInUnitCircle
+        theta <- randomRng (0, 2*pi)
+        r <- randomRng (0, 1)
+        return $ (r*(cos theta), r*(sin theta))
 
     shuffledIndices::Int->State StdGen (Vector Int)
     shuffledIndices n = do
@@ -69,7 +76,7 @@ module Utils where
         where
             Image (nx, ny) cols = im
             header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
-            f2i = \f-> floor $ 255.9*(bound (0, 1) f)
+            f2i = \f-> floor $ 256*(bound (0, 0.999) f)
             body = [unwords $ map (show.f2i) [r,g,b] | (V3 r g b) <- cols]
 
     fromPPM::String->IO Image

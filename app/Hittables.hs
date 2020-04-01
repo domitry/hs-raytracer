@@ -85,7 +85,7 @@ module Hittables where
 
     xyplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
     xyplane (x0,y0) (x1,y1) z mat = Hittable { hit=imp_hit, bounding_box=box } where
-        box = AABB (x0,x1) (y0,y1) (z-1e-4,z+1e-4)
+        box = AABB (x0,x1) (y0,y1) (z-0.1,z+0.1)
         imp_hit (tmin, tmax) (Ray va vb)
             | cx>x0 && cx<x1 && cy>y0 && cy<y1 && t>tmin && t<tmax = Just event
             | otherwise = Nothing

@@ -102,7 +102,7 @@ module Materials where
         where
             imp_scatter _ ev = do
                 let (n, point, uv) = (evNormal ev, evPoint ev, evUV ev)
-                v <- randomPointInUnitSphere
+                v <- randomUnitVector
                 let v' = n + v
                 let col = pickColor tex uv point
                 return $ (Just $ Ray point v', col)

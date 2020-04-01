@@ -124,7 +124,7 @@ module Samples where
         let big = sphere (V3 0 (-1000) 0) 1000 mat
         let rect_light = xyplane (3,1) (5,3) (-2) dl
         let sphere_light = sphere (V3 0 7 0) 2 dl
-        let cam = genCameraWithBokeh 10 0.1 2 20 (V3 26 3 6) (V3 0 2 0) (V3 0 1 0)
+        let cam = genCameraWithBokeh 10 0 2 20 (V3 26 3 6) (V3 0 2 0) (V3 0 1 0)
 
         world <- genWorld [small, big, rect_light, sphere_light]
         return $ Scene world cam background_night
