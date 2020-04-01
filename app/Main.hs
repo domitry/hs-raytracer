@@ -46,13 +46,17 @@ toRay cam (u, v) = do
     let offset = (dx*^nhor) + (dy*^nvert)
     let orig2 = orig + lensr*^offset
     let dir = dst - orig2
-    return $ Ray orig2 dir
+    return $ Ray 0 orig2 dir
 
 renderPixel::(Int, Int)->Scene->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) (Scene world cam background) cxy = do
-    xys <- sampleXYs 400 cxy
+    let nsample = 100
+    xys <- sampleXYs nsample cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
-    rays <- forM xys ((toRay cam).toUV)
+    tmp_rays <- forM xys ((toRay cam).toUV)
+    -- add randomized time for Motion Blur
+    times <- forM [1..nsample] (\_->randomRng (0, 1))
+    let rays = [Ray time orig dir | (time, (Ray _ orig dir)) <- zip times tmp_rays]
     sampledCols <- forM rays (color 0 world background)
     return $ average sampledCols
 
@@ -62,16 +66,16 @@ render size scene = do
     let xys = [(fromIntegral x, fromIntegral y) | y<-[0..(ny-1)], x<-[0..(nx-1)]]
     gen0 <- getStdGen
     let render_ = renderPixel size scene
-    let cols = parMap rdeepseq (\(xy, g) -> evalState (render_ xy) g) (zip xys (mkGens gen0))
+    let cols = parMap rpar (\(xy, g) -> evalState (render_ xy) g) (zip xys (mkGens gen0))
     return $ Image size cols
 
 main = do
     gen0 <- getStdGen
-    let scene = evalState (genCornelBoxScene) gen0
+    let scene = evalState (genColorfulScene) gen0
     newStdGen
 
     start <- getCurrentTime
-    img <- render (400, 400) scene
+    img <- render (400, 200) scene
     putStr $ toPPM $ gammaCorrection img
     end <- getCurrentTime
     hPutStrLn stderr ("Rendering Time: " ++ (show $ diffUTCTime end start))

@@ -56,7 +56,8 @@ module Samples where
         shperes <- forM positions $ \pos -> do
             prob <- randomRng (0, 1)
             mat <- chooseMaterial prob
-            return $ sphere pos 0.2 mat
+            vely <- if prob < 0.8 then randomRng (0, 0.5) else return 0
+            return $ addVelocity (V3 0 vely 0) $ sphere pos 0.2 mat
 
         let ch = checker (V3 0.2 0.3 0.1) (V3 0.9 0.9 0.9)
         let ground = sphere (V3 0 (-1000) 0) 1000 (lambertian ch)
@@ -174,7 +175,7 @@ module Samples where
     cam_last = genCameraWithBokeh 10 0.1 2 20 (V3 13 2 3) (V3 0 0 0) (V3 0 1 0)
 
     background_sky::Ray->Color
-    background_sky (Ray _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
+    background_sky (Ray _ _ dir) = (1.0-t)*^(V3 1.0 1.0 1.0) + t*^(V3 0.5 0.7 1.0)
         where
             V3 x y z = normalize dir
             t = 0.5*(y+1.0)

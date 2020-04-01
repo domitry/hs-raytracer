@@ -53,7 +53,7 @@ module Hittables where
     sphere vc r mat = Hittable { hit = imp_hit, bounding_box = box}
         where
             -- select a point which is the nearest to the origin of the ray
-            hitParam (tmin, tmax) (Ray va vb)
+            hitParam (tmin, tmax) (Ray _ va vb)
                 | d < 0 = Nothing
                 | small > tmin && small < tmax  = Just small
                 | big   > tmin && big   < tmax  = Just big
@@ -86,7 +86,7 @@ module Hittables where
     xyplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
     xyplane (x0,y0) (x1,y1) z mat = Hittable { hit=imp_hit, bounding_box=box } where
         box = AABB (x0,x1) (y0,y1) (z-0.1,z+0.1)
-        imp_hit (tmin, tmax) (Ray va vb)
+        imp_hit (tmin, tmax) (Ray _ va vb)
             | cx>x0 && cx<x1 && cy>y0 && cy<y1 && t>tmin && t<tmax = Just event
             | otherwise = Nothing
             where
@@ -102,7 +102,7 @@ module Hittables where
     yzplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
     yzplane (y0,z0) (y1,z1) x mat = Hittable { hit=imp_hit, bounding_box=box } where
         box = AABB (x-0.1,x+0.1) (y0,y1) (z0,z1) 
-        imp_hit (tmin, tmax) (Ray va vb)
+        imp_hit (tmin, tmax) (Ray _ va vb)
             | cy>y0 && cy<y1 && cz>z0 && cz<z1 && t>tmin && t<tmax = Just event
             | otherwise = Nothing
             where
@@ -118,7 +118,7 @@ module Hittables where
     xzplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
     xzplane (x0,z0) (x1,z1) y mat = Hittable { hit=imp_hit, bounding_box=box } where
         box = AABB (x0,x1) (y-0.1,y+0.1) (z0,z1)
-        imp_hit (tmin, tmax) (Ray va vb)
+        imp_hit (tmin, tmax) (Ray _ va vb)
             | cx>x0 && cx<x1 && cz>z0 && cz<z1 && t>tmin && t<tmax = Just event
             | otherwise = Nothing
             where
@@ -164,8 +164,8 @@ module Hittables where
 
         box = AABB (x0+dx,x1+dx) (y0+dy,y1+dy) (z0+dz,z1+dz)
 
-        imp_hit trng (Ray orig dir) = do
-            let newray = Ray (orig-offset) dir
+        imp_hit trng (Ray time orig dir) = do
+            let newray = Ray time (orig-offset) dir
             event <- hit original trng newray
             let point = evPoint event
             return $ event { evPoint = point+offset }
@@ -186,9 +186,29 @@ module Hittables where
             (x0',z0') = foldl (\m (x,z) -> (minXZ m).getXZ.rotPos $ V3 x 0 z) (1e10,1e10) corners
             (x1',z1') = foldl (\m (x,z) -> (maxXZ m).getXZ.rotPos $ V3 x 0 z) ((-1e10),(-1e10)) corners
             
-        imp_hit trng (Ray orig dir) = do
-            let newray = Ray (rotNeg orig) (rotNeg dir)
+        imp_hit trng (Ray time orig dir) = do
+            let newray = Ray time (rotNeg orig) (rotNeg dir)
             event <- hit original trng newray
             let pt = rotPos $ evPoint event
             let nv = rotPos $ evNormal event
             return $ event { evPoint=pt, evNormal=nv }
+
+    addVelocity::Vf->Hittable->Hittable
+    addVelocity vel original = Hittable { hit=imp_hit, bounding_box=box } where
+        box = AABB xrng yrng zrng where
+            (V3 dx dy dz) = vel
+            AABB (x0, x1) (y0, y1) (z0, z1) = bounding_box original
+            xs = [x0, x1, x0+dx, x1+dx]
+            ys = [y0, y1, y0+dy, y1+dy]
+            zs = [z0, z1, z0+dz, z1+dz]
+            xrng = (minimum xs, maximum xs)
+            yrng = (minimum ys, maximum ys)
+            zrng = (minimum zs, maximum zs)
+
+        imp_hit trng (Ray time orig dir) = do
+            let offset = time*^vel
+            let newray = Ray 0 (orig-offset) (dir-offset)
+            event <- hit original trng newray
+            let point = evPoint event
+            return $ event { evPoint=(point+offset) }
+    

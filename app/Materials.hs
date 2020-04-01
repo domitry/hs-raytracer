@@ -100,12 +100,12 @@ module Materials where
     lambertian::Texture->Material
     lambertian tex = Material { scatter=imp_scatter, emit=emitNone }
         where
-            imp_scatter _ ev = do
+            imp_scatter (Ray time _ _) ev = do
                 let (n, point, uv) = (evNormal ev, evPoint ev, evUV ev)
                 v <- randomUnitVector
                 let v' = n + v
                 let col = pickColor tex uv point
-                return $ (Just $ Ray point v', col)
+                return $ (Just $ Ray time point v', col)
 
     -- be careful that dot vin nv < 0 and nv is normalized
     reflect::Vf->Vf->Vf
@@ -126,13 +126,13 @@ module Materials where
     metal::Color->Float->Material
     metal albedo fuzziness = Material { scatter=imp_scatter, emit=emitNone }
         where
-            imp_scatter (Ray _ vin) ev = do
+            imp_scatter (Ray time _ vin) ev = do
                 let (n, point) = (evNormal ev, evPoint ev)
                 let f = bound (0, 1) fuzziness
                 s <- randomPointInUnitSphere
                 let vout = (reflect vin n) + f*^s
                 return $ if (dot vout n) >= 0
-                    then (Just $ Ray point vout, albedo)
+                    then (Just $ Ray time point vout, albedo)
                     else (Nothing, albedo)
     
     -- glass
@@ -144,7 +144,7 @@ module Materials where
                     sqrt_r0 = (1-ri)/(1+ri)
                     r0 = sqrt_r0*sqrt_r0
 
-            imp_scatter (Ray _ vin) ev = do
+            imp_scatter (Ray time _ vin) ev = do
                 let (n, point) = (evNormal ev, evPoint ev)
                 let nvin = normalize vin
                 let nvinn = dot nvin n
@@ -162,7 +162,7 @@ module Materials where
                         Nothing -> reflected
                         Just refracted -> if prob < prob_reflect then reflected else refracted
                 
-                return (Just $ Ray point vout, V3 1 1 1)
+                return (Just $ Ray time point vout, V3 1 1 1)
 
     diffuseLight::Color->Material
     diffuseLight col = Material { scatter=scatterNone, emit=imp_emit } where
