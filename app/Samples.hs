@@ -143,9 +143,17 @@ module Samples where
         let back = flipFace $ xyplane (0,0) (555,555) 555 white
         let rect_light = xzplane (213,227) (343,332) 554 light
 
+        --let cube1 = cube (V3 130 0 65) (V3 295 165 230) white
+        --let cube2 = cube (V3 265 0 295) (V3 430 330 460) white
+
+        let cube1 = cube (V3 0 0 0) (V3 165 330 165) white
+        let cube2 = cube (V3 0 0 0) (V3 165 165 165) white
+        let cube1'= translate (V3 265 0 295) $ rotateY 15 $ cube1
+        let cube2'= translate (V3 130 0 65) $ rotateY (-18) $ cube2 
+
         let cam = genCameraWithBokeh 10 0 1 40 (V3 278 278 (-800)) (V3 278 278 0) (V3 0 1 0)
 
-        world <- genWorld [left,right,top,bottom,back,rect_light]
+        world <- genWorld [left,right,top,bottom,back,rect_light,cube1',cube2']
         return $ Scene world cam background_night
 
     cam_bokeh::Camera

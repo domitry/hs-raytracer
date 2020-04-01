@@ -131,6 +131,24 @@ module Hittables where
                 normal = V3 0 1 0
                 event = HitEvent {evParam=t, evPoint=point, evNormal=normal, evUV=uv, evMat=mat}
 
+    cube::Vf->Vf->Material->Hittable
+    cube (V3 x0 y0 z0) (V3 x1 y1 z1) mat = Hittable { hit=imp_hit, bounding_box=box } where
+        box = AABB (x0, x1) (y0, y1) (z0, z1)
+
+        rgt = flipFace $ yzplane (y0,z0) (y1,z1) x0 mat
+        lft = yzplane (y0,z0) (y1,z1) x1 mat
+        btm = flipFace $ xzplane (x0,z0) (x1,z1) y0 mat
+        top = xzplane (x0,z0) (x1,z1) y1 mat
+        frt = flipFace $ xyplane (x0,y0) (x1,y1) z0 mat
+        bck = xyplane (x0,y0) (x1,y1) z1 mat
+        hittables = [rgt,lft,btm,top,frt,bck]
+        
+        imp_hit trng ray
+            | null events = Nothing
+            | otherwise = Just $ minimumBy (comparing evParam) events
+            where
+                events = catMaybes [hit h trng ray | h <- hittables]
+
     flipFace::Hittable->Hittable
     flipFace h = Hittable { hit=imp_hit, bounding_box=(bounding_box h) } where
         imp_hit trng ray = case (hit h trng ray) of
@@ -138,3 +156,39 @@ module Hittables where
             Just event -> Just new_event where
                 normal = (-1)*^(evNormal event)
                 new_event = event { evNormal = normal }
+
+    translate::Vf->Hittable->Hittable
+    translate offset original = Hittable { hit=imp_hit, bounding_box=box } where
+        (V3 dx dy dz) = offset
+        AABB (x0, x1) (y0, y1) (z0, z1) = bounding_box original
+
+        box = AABB (x0+dx,x1+dx) (y0+dy,y1+dy) (z0+dz,z1+dz)
+
+        imp_hit trng (Ray orig dir) = do
+            let newray = Ray (orig-offset) dir
+            event <- hit original trng newray
+            let point = evPoint event
+            return $ event { evPoint = point+offset }
+
+    rotateY::Float->Hittable->Hittable
+    rotateY theta original = Hittable { hit=imp_hit, bounding_box=box } where
+        (rotPos, rotNeg) = (rotY (st, ct), rotY ((-1)*st, ct)) where
+            -- care that tt has opposite sign to theta
+            (st, ct) = (sin tt, cos tt) where tt = (-pi)*(theta/180)
+            rotY (st, ct) (V3 x y z) = V3 (ct*x-st*z) y (st*x+ct*z)
+
+        box = AABB (x0',x1') yrng (z0',z1') where
+            (AABB (x0, x1) yrng (z0, z1)) = bounding_box original
+            corners = [(x,z) | x<-[x0,x1], z<-[z0,z1]]
+            getXZ = \(V3 x y z)->(x, z)
+            minXZ = \(x0,z0) (x1,z1)->(min x0 x1, min z0 z1)
+            maxXZ = \(x0,z0) (x1,z1)->(max x0 x1, max z0 z1)
+            (x0',z0') = foldl (\m (x,z) -> (minXZ m).getXZ.rotPos $ V3 x 0 z) (1e10,1e10) corners
+            (x1',z1') = foldl (\m (x,z) -> (maxXZ m).getXZ.rotPos $ V3 x 0 z) ((-1e10),(-1e10)) corners
+            
+        imp_hit trng (Ray orig dir) = do
+            let newray = Ray (rotNeg orig) (rotNeg dir)
+            event <- hit original trng newray
+            let pt = rotPos $ evPoint event
+            let nv = rotPos $ evNormal event
+            return $ event { evPoint=pt, evNormal=nv }
