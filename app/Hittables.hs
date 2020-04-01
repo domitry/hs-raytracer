@@ -207,7 +207,7 @@ module Hittables where
 
         imp_hit trng (Ray time orig dir) = do
             let offset = time*^vel
-            let newray = Ray 0 (orig-offset) (dir-offset)
+            let newray = Ray 0 (orig-offset) dir
             event <- hit original trng newray
             let point = evPoint event
             return $ event { evPoint=(point+offset) }
