@@ -67,11 +67,11 @@ render size scene = do
 
 main = do
     gen0 <- getStdGen
-    let scene = evalState (genDarkMarbleScene) gen0
+    let scene = evalState (genCornelBoxScene) gen0
     newStdGen
 
     start <- getCurrentTime
-    img <- render (400, 200) scene
+    img <- render (400, 400) scene
     putStr $ toPPM $ gammaCorrection img
     end <- getCurrentTime
     hPutStrLn stderr ("Rendering Time: " ++ (show $ diffUTCTime end start))

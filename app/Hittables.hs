@@ -98,3 +98,43 @@ module Hittables where
                 uv = (0, 0) -- TODO: implement getUV
                 normal = V3 0 0 1
                 event = HitEvent {evParam=t, evPoint=point, evNormal=normal, evUV=uv, evMat=mat}
+
+    yzplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
+    yzplane (y0,z0) (y1,z1) x mat = Hittable { hit=imp_hit, bounding_box=box } where
+        box = AABB (x-0.1,x+0.1) (y0,y1) (z0,z1) 
+        imp_hit (tmin, tmax) (Ray va vb)
+            | cy>y0 && cy<y1 && cz>z0 && cz<z1 && t>tmin && t<tmax = Just event
+            | otherwise = Nothing
+            where
+                (V3 ax ay az) = va
+                (V3 bx by bz) = vb
+                t = (x-ax)/bx
+                point = va + t*^vb
+                (V3 _ cy cz) = point
+                uv = (0, 0) -- TODO: implement getUV
+                normal = V3 1 0 0
+                event = HitEvent {evParam=t, evPoint=point, evNormal=normal, evUV=uv, evMat=mat}
+
+    xzplane::(Float,Float)->(Float,Float)->Float->Material->Hittable
+    xzplane (x0,z0) (x1,z1) y mat = Hittable { hit=imp_hit, bounding_box=box } where
+        box = AABB (x0,x1) (y-0.1,y+0.1) (z0,z1)
+        imp_hit (tmin, tmax) (Ray va vb)
+            | cx>x0 && cx<x1 && cz>z0 && cz<z1 && t>tmin && t<tmax = Just event
+            | otherwise = Nothing
+            where
+                (V3 ax ay az) = va
+                (V3 bx by bz) = vb
+                t = (y-ay)/by
+                point = va + t*^vb
+                (V3 cx _ cz) = point
+                uv = (0, 0) -- TODO: implement getUV
+                normal = V3 0 1 0
+                event = HitEvent {evParam=t, evPoint=point, evNormal=normal, evUV=uv, evMat=mat}
+
+    flipFace::Hittable->Hittable
+    flipFace h = Hittable { hit=imp_hit, bounding_box=(bounding_box h) } where
+        imp_hit trng ray = case (hit h trng ray) of
+            Nothing -> Nothing
+            Just event -> Just new_event where
+                normal = (-1)*^(evNormal event)
+                new_event = event { evNormal = normal }

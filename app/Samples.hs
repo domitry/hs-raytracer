@@ -6,7 +6,7 @@ module Samples where
     import Linear.Metric
     import Utils
     import Types
-    import Hittables (sphere, genWorld, xyplane)
+    import Hittables
     import Materials
 
     genLambertian::State StdGen Material
@@ -127,6 +127,25 @@ module Samples where
         let cam = genCameraWithBokeh 10 0 2 20 (V3 26 3 6) (V3 0 2 0) (V3 0 1 0)
 
         world <- genWorld [small, big, rect_light, sphere_light]
+        return $ Scene world cam background_night
+
+    genCornelBoxScene::State StdGen Scene
+    genCornelBoxScene = do
+        let red = lambertian $ fromColor $ V3 0.65 0.05 0.05
+        let white = lambertian $ fromColor $ V3 0.73 0.73 0.73
+        let green = lambertian $ fromColor $ V3 0.12 0.45 0.15
+        let light = diffuseLight $ V3 15 15 15
+
+        let left = flipFace $ yzplane (0,0) (555,555) 555 green
+        let right = yzplane (0,0) (555,555) 0 red
+        let top = flipFace $ xzplane (0,0) (555,555) 555 white
+        let bottom = xzplane (0,0) (555,555) 0 white
+        let back = flipFace $ xyplane (0,0) (555,555) 555 white
+        let rect_light = xzplane (213,227) (343,332) 554 light
+
+        let cam = genCameraWithBokeh 10 0 1 40 (V3 278 278 (-800)) (V3 278 278 0) (V3 0 1 0)
+
+        world <- genWorld [left,right,top,bottom,back,rect_light]
         return $ Scene world cam background_night
 
     cam_bokeh::Camera
