@@ -128,7 +128,7 @@ module Materials where
         where
             imp_scatter (Ray time _ vin) ev = do
                 let (n, point) = (evNormal ev, evPoint ev)
-                let f = bound (0, 1) fuzziness
+                let f = clamp (0, 1) fuzziness
                 s <- randomPointInUnitSphere
                 let vout = (reflect vin n) + f*^s
                 return $ if (dot vout n) >= 0
@@ -168,4 +168,11 @@ module Materials where
     diffuseLight col = Material { scatter=scatterNone, emit=imp_emit } where
         scatterNone ray ev = return (Nothing, V3 0 0 0)
         imp_emit ev = col
+    
+    isotropic::Color->Material
+    isotropic col = Material {scatter=imp_scatter, emit=emitNone } where
+        imp_scatter (Ray time _ _) ev = do
+            let point = evPoint ev
+            dir <- randomPointInUnitSphere
+            return (Just $ Ray time point dir, col)
     

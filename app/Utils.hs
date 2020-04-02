@@ -14,8 +14,8 @@ module Utils where
     black::Vf
     black = V3 0 0 0
 
-    bound::(Float, Float)->Float->Float
-    bound (tmin, tmax) t
+    clamp::(Float, Float)->Float->Float
+    clamp (tmin, tmax) t
         | t < tmin = tmin
         | t > tmax = tmax
         | otherwise = t
@@ -76,7 +76,7 @@ module Utils where
         where
             Image (nx, ny) cols = im
             header = ["P3",  unwords [show nx, show ny], "255"] -- magic, width, height, maxval
-            f2i = \f-> floor $ 256*(bound (0, 0.999) f)
+            f2i = \f-> floor $ 256*(clamp (0, 0.999) f)
             body = [unwords $ map (show.f2i) [r,g,b] | (V3 r g b) <- cols]
 
     fromPPM::String->IO Image

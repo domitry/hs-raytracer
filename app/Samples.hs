@@ -130,23 +130,27 @@ module Samples where
         world <- genWorld [small, big, rect_light, sphere_light]
         return $ Scene world cam background_night
 
-    genCornelBoxScene::State StdGen Scene
-    genCornelBoxScene = do
+    genCornellBox::State StdGen [Hittable]
+    genCornellBox = do
         let red = lambertian $ fromColor $ V3 0.65 0.05 0.05
         let white = lambertian $ fromColor $ V3 0.73 0.73 0.73
         let green = lambertian $ fromColor $ V3 0.12 0.45 0.15
-        let light = diffuseLight $ V3 15 15 15
-
         let left = flipFace $ yzplane (0,0) (555,555) 555 green
         let right = yzplane (0,0) (555,555) 0 red
         let top = flipFace $ xzplane (0,0) (555,555) 555 white
         let bottom = xzplane (0,0) (555,555) 0 white
         let back = flipFace $ xyplane (0,0) (555,555) 555 white
+        return $ [left,right,top,bottom,back]
+
+    genCornellBoxScene::State StdGen Scene
+    genCornellBoxScene = do
+        let light = diffuseLight $ V3 15 15 15
         let rect_light = xzplane (213,227) (343,332) 554 light
 
         --let cube1 = cube (V3 130 0 65) (V3 295 165 230) white
         --let cube2 = cube (V3 265 0 295) (V3 430 330 460) white
 
+        let white = lambertian $ fromColor $ V3 0.73 0.73 0.73
         let cube1 = cube (V3 0 0 0) (V3 165 330 165) white
         let cube2 = cube (V3 0 0 0) (V3 165 165 165) white
         let cube1'= translate (V3 265 0 295) $ rotateY 15 $ cube1
@@ -154,7 +158,29 @@ module Samples where
 
         let cam = genCameraWithBokeh 10 0 1 40 (V3 278 278 (-800)) (V3 278 278 0) (V3 0 1 0)
 
-        world <- genWorld [left,right,top,bottom,back,rect_light,cube1',cube2']
+        parts <- genCornellBox
+        world <- genWorld $ parts ++ [rect_light,cube1',cube2']
+        return $ Scene world cam background_night
+
+    genCornellBoxWithFogScene::State StdGen Scene
+    genCornellBoxWithFogScene = do
+        let light = diffuseLight $ V3 7 7 7
+        let rect_light = xzplane (113,127) (443,432) 554 light
+        let dammy = lambertian $ fromColor $ V3 0 0 0
+
+        let cube1 = translate (V3 265 0 295) $ rotateY 15 $ box where
+            box = cube (V3 0 0 0) (V3 165 330 165) dammy
+        let cube2 = translate (V3 130 0 65) $ rotateY (-18) $ box where
+            box = cube (V3 0 0 0) (V3 165 165 165) dammy
+
+        let cube1' = constantMedium 0.01 cube1 black_fog where
+            black_fog = isotropic $ V3 0 0 0
+        let cube2' = constantMedium 0.01 cube2 white_fog where
+            white_fog = isotropic $ V3 1 1 1
+
+        let cam = genCameraWithBokeh 10 0 1 40 (V3 278 278 (-800)) (V3 278 278 0) (V3 0 1 0)
+        parts <- genCornellBox
+        world <- genWorld $ parts ++ [rect_light,cube1',cube2']
         return $ Scene world cam background_night
 
     cam_bokeh::Camera

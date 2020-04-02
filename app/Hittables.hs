@@ -212,3 +212,29 @@ module Hittables where
             let point = evPoint event
             return $ event { evPoint=(point+offset) }
     
+    constantMedium::Float->Hittable->Material->Hittable
+    constantMedium d boundary mat = Hittable { hit=imp_hit, bounding_box=bounding_box boundary } where
+        neg_inv_d = (-1)/d
+        infinity = 1e10
+
+        -- super dirty hack for getting random number.
+        -- TODO: consider how to avoid this
+        mkStdGenFromV3 (V3 x y z) = mkStdGen (floor $ 1000*x*y*z)
+        
+        imp_hit (tmin, tmax) ray = do
+            ev1 <- hit boundary (-infinity, infinity) ray
+            let t1 = clamp (tmin, infinity) (evParam ev1)
+            ev2 <- hit boundary (t1+1e-3, infinity) ray
+            let t2 = clamp (tmin, infinity) (evParam ev2)
+            -- here I ignore a corner case (t1>t2) because I'd like to confirm when it happens 
+            let (Ray _ orig dir) = ray
+            let unit_dist = norm dir
+            let max_dist = (t2-t1)*unit_dist
+            let gen = mkStdGenFromV3 (orig*dir)
+            let (rnd, _) = randomR (0, 1) gen
+            let dist = neg_inv_d*(log rnd)
+            tt <- if dist>max_dist 
+                then Nothing 
+                else Just $ dist/unit_dist
+            let point = orig+tt*^dir
+            return HitEvent { evParam=tt, evPoint=point, evMat=mat, evNormal=(V3 0 0 0), evUV=(0,0)}
