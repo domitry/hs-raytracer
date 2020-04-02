@@ -147,9 +147,6 @@ module Samples where
         let light = diffuseLight $ V3 15 15 15
         let rect_light = xzplane (213,227) (343,332) 554 light
 
-        --let cube1 = cube (V3 130 0 65) (V3 295 165 230) white
-        --let cube2 = cube (V3 265 0 295) (V3 430 330 460) white
-
         let white = lambertian $ fromColor $ V3 0.73 0.73 0.73
         let cube1 = cube (V3 0 0 0) (V3 165 330 165) white
         let cube2 = cube (V3 0 0 0) (V3 165 165 165) white
@@ -181,6 +178,68 @@ module Samples where
         let cam = genCameraWithBokeh 10 0 1 40 (V3 278 278 (-800)) (V3 278 278 0) (V3 0 1 0)
         parts <- genCornellBox
         world <- genWorld $ parts ++ [rect_light,cube1',cube2']
+        return $ Scene world cam background_night
+
+    genSecondLastScene::Image->State StdGen Scene
+    genSecondLastScene img = do
+        marble_sphere <- do
+            marb <- marble 0.1
+            let mat = lambertian marb
+            return $ sphere (V3 220 280 300) 80 mat 
+
+        let silver = sphere (V3 0 150 145) 50 mat where
+            mat = metal (V3 0.8 0.8 0.9) 10
+
+        let moving = addVelocity (V3 30 0 0) $ sphere (V3 400 400 200) 50 mat where
+            mat = lambertian $ fromColor $ V3 0.7 0.3 0.1
+
+        let earth = sphere (V3 400 200 400) 100 mat where
+            mat = lambertian $ fromImage img
+
+        let pure_glass = sphere (V3 260 150 45) 50 mat where
+            mat = dielectric 1.5
+
+        let blue_glass = sphere (V3 360 150 145) 70 mat where
+            mat = dielectric 1.5
+
+        let blue_fog = constantMedium 0.2 blue_glass mat where
+            mat = isotropic $ V3 0.2 0.4 0.9
+
+        let fog = constantMedium 1e-4 boundary mat where
+            boundary = sphere (V3 0 0 0) 5000 (dielectric 1.5)
+            mat = isotropic $ V3 1 1 1
+
+        let light = xzplane (123,147) (423,412) 554 mat where
+            mat = diffuseLight $ V3 7 7 7
+
+        box_world <- do
+            let green = lambertian $ fromColor $ V3 0.48 0.83 0.53
+            let ijs = [(i, j) | i<-[0..19], j<-[0..19]]
+            boxes <- forM ijs $ \(i, j)->do
+                let w=100
+                let (x0, z0) = (-1000+i*w, -100+j*w)
+                let (x1, z1) = (x0+w, z0+w)
+                y1 <- randomRng (1, 101)
+                return $ cube (V3 x0 0 z0) (V3 x1 y1 z1) green
+            genWorld boxes
+
+        sphere_world <- do
+            let white = lambertian $ fromColor $ V3 0.73 0.73 0.73
+            spheres <- forM [1..1000] $ \_-> do
+                center <- randomV3 (0, 165)
+                return $ sphere center 10 white
+            world <- genWorld spheres
+            return $ translate (V3 (-100) 270 395) $ rotateY 15 world
+
+        world <- genWorld [marble_sphere, silver, moving, earth, pure_glass, blue_glass,
+                blue_fog, fog, light, box_world, sphere_world]
+
+        let cam = genCameraWithBokeh 10 0 1 vfov lookfrom lookat vup where
+            lookfrom = V3 478 278 (-600)
+            lookat = V3 278 278 0
+            vup = V3 0 1 0
+            vfov = 40
+
         return $ Scene world cam background_night
 
     cam_bokeh::Camera
