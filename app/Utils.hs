@@ -60,6 +60,14 @@ module Utils where
         let (ct, st, cp, sp) = (cos theta, sin theta, cos phi, sin phi)
         return $ V3 (r*cp*ct) (r*sp*ct) (r*st)
 
+    randomPointInUnitSphereByRejecting::State StdGen Vf
+    randomPointInUnitSphereByRejecting = do
+        x <- randomRng ((-1), 1)
+        y <- randomRng ((-1), 1)
+        z <- randomRng ((-1), 1)
+        let vec = V3 x y z
+        if norm vec <= 1 then return vec else randomPointInUnitSphereByRejecting
+
     randomPointInUnitCircle::State StdGen (Float, Float)
     randomPointInUnitCircle = do
         theta <- randomRng (0, 2*pi)

@@ -169,7 +169,7 @@ module Materials where
         imp_emit ev = col
     
     isotropic::Color->Material
-    isotropic col = Material {scatter=imp_scatter, emit=emitNone } where
+    isotropic col = Material { scatter=imp_scatter, emit=emitNone } where
         imp_scatter (Ray time _ _) ev = do
             let point = evPoint ev
             dir <- randomPointInUnitSphere

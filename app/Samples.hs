@@ -180,8 +180,8 @@ module Samples where
         world <- genWorld $ parts ++ [rect_light,cube1',cube2']
         return $ Scene world cam background_night
 
-    genSecondLastScene::Image->State StdGen Scene
-    genSecondLastScene img = do
+    genSecondFinalScene::Image->State StdGen Scene
+    genSecondFinalScene img = do
         marble_sphere <- do
             marb <- marble 0.1
             let mat = lambertian marb
@@ -232,7 +232,7 @@ module Samples where
             return $ translate (V3 (-100) 270 395) $ rotateY 15 world
 
         world <- genWorld [marble_sphere, silver, moving, earth, pure_glass, blue_glass,
-                light, box_world, sphere_world]
+                blue_fog, fog, light, box_world, sphere_world]
 
         let cam = genCameraWithBokeh 10 0 1 vfov lookfrom lookat vup where
             lookfrom = V3 478 278 (-600)

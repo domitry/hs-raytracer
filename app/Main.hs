@@ -50,7 +50,7 @@ toRay cam (u, v) = do
 
 renderPixel::(Int, Int)->Scene->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) (Scene world cam background) cxy = do
-    let nsample = 200
+    let nsample = 400
     xys <- sampleXYs nsample cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
     tmp_rays <- forM xys ((toRay cam).toUV)
@@ -72,11 +72,11 @@ render size scene = do
 main = do
     gen0 <- getStdGen
     earth <- fromPPM "/home/nishida/hslearn/Raytracer/small.ppm"
-    let scene = evalState (genSecondLastScene earth) gen0
+    let scene = evalState (genSecondFinalScene earth) gen0
     newStdGen
 
     start <- getCurrentTime
-    img <- render (200, 200) scene
+    img <- render (400, 400) scene
     putStr $ toPPM $ gammaCorrection img
     end <- getCurrentTime
     hPutStrLn stderr ("Rendering Time: " ++ (show $ diffUTCTime end start))
