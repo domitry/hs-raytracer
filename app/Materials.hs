@@ -89,7 +89,7 @@ module Materials where
         noise <- genPerlin
         return $ Texture { pickColor=(imp_pick noise) } where
             imp_pick noise _ xyz = V3 v v v where
-                turb = accPerlin noise 7 xyz
+                turb = accPerlin noise 7 ((scale/4)*^xyz)
                 V3 _ _ z = xyz
                 v = (1 + sin (scale*z+10*turb))/2
 
@@ -128,9 +128,8 @@ module Materials where
         where
             imp_scatter (Ray time _ vin) ev = do
                 let (n, point) = (evNormal ev, evPoint ev)
-                let f = clamp (0, 1) fuzziness
                 s <- randomPointInUnitSphere
-                let vout = (reflect vin n) + f*^s
+                let vout = (reflect vin n) + fuzziness*^s
                 return $ if (dot vout n) >= 0
                     then (Just $ Ray time point vout, albedo)
                     else (Nothing, albedo)

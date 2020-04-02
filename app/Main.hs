@@ -50,7 +50,7 @@ toRay cam (u, v) = do
 
 renderPixel::(Int, Int)->Scene->(Float, Float)->State StdGen Color
 renderPixel (nx, ny) (Scene world cam background) cxy = do
-    let nsample = 400
+    let nsample = 200
     xys <- sampleXYs nsample cxy
     let toUV = \(x, y)->(x/(fromIntegral nx),  1 - y/(fromIntegral ny))
     tmp_rays <- forM xys ((toRay cam).toUV)
@@ -76,7 +76,7 @@ main = do
     newStdGen
 
     start <- getCurrentTime
-    img <- render (400, 400) scene
+    img <- render (200, 200) scene
     putStr $ toPPM $ gammaCorrection img
     end <- getCurrentTime
     hPutStrLn stderr ("Rendering Time: " ++ (show $ diffUTCTime end start))

@@ -232,7 +232,7 @@ module Samples where
             return $ translate (V3 (-100) 270 395) $ rotateY 15 world
 
         world <- genWorld [marble_sphere, silver, moving, earth, pure_glass, blue_glass,
-                blue_fog, fog, light, box_world, sphere_world]
+                light, box_world, sphere_world]
 
         let cam = genCameraWithBokeh 10 0 1 vfov lookfrom lookat vup where
             lookfrom = V3 478 278 (-600)
