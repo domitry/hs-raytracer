@@ -235,6 +235,6 @@ module Hittables where
             let dist = neg_inv_d*(log rnd)
             tt <- if dist>max_dist 
                 then Nothing 
-                else Just $ dist/unit_dist
+                else Just $ t1 + dist/unit_dist
             let point = orig+tt*^dir
             return HitEvent { evParam=tt, evPoint=point, evMat=mat, evNormal=(V3 0 0 0), evUV=(0,0)}
